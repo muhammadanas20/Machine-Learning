@@ -802,11 +802,6 @@
                 const found = CURRICULUM_DATA.find(n => n.path === hash || n.section === hash);
                 if (found) loadNotebook(found.path);
             }
-
-            // Lazy initialize Pyodide in background
-            setTimeout(() => {
-                initPyodideEngine();
-            }, 1000);
         });
 
         // ===== THEME MANAGMENT =====
@@ -824,22 +819,26 @@
             localStorage.setItem('ml_theme', isDark ? 'dark' : 'light');
         }
 
-        // ===== PYODIDE ENGINE INITIALIZATION =====
+        // ===== PYODIDE ENGINE INITIALIZATION (ON DEMAND) =====
         async function initPyodideEngine() {
-            if (pyodideReady || isPyodideLoading) return;
+            if (pyodideReady) return pyodide;
+            if (isPyodideLoading) {
+                while (isPyodideLoading) {
+                    await new Promise(r => setTimeout(r, 100));
+                }
+                return pyodide;
+            }
             isPyodideLoading = true;
 
-            updatePyodideBadge('loading', 'Loading WASM...');
+            updatePyodideBadge('loading', 'Loading WASM Core...');
+            await new Promise(r => setTimeout(r, 50)); // Yield thread to avoid freezing UI
 
             try {
                 pyodide = await loadPyodide({
                     indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/"
                 });
 
-                updatePyodideBadge('loading', 'Loading Packages...');
-                await pyodide.loadPackage(['numpy', 'pandas', 'matplotlib', 'scikit-learn']);
-
-                // Mount Datasets to Pyodide Virtual File System
+                updatePyodideBadge('loading', 'Mounting datasets...');
                 await mountDatasetsToPyodide();
 
                 // Intercept Matplotlib for inline PNG rendering
@@ -852,11 +851,13 @@ import matplotlib.pyplot as plt
 
                 pyodideReady = true;
                 isPyodideLoading = false;
-                updatePyodideBadge('ready', 'Pyodide Python Ready');
+                updatePyodideBadge('ready', 'Python WASM Ready');
+                return pyodide;
             } catch (e) {
                 console.warn('Pyodide WASM load failed/skipped:', e);
                 isPyodideLoading = false;
                 updatePyodideBadge('error', 'Pyodide Fallback Mode');
+                return null;
             }
         }
 
@@ -900,14 +901,24 @@ import matplotlib.pyplot as plt
             const code = codeEl.value || codeEl.textContent;
 
             outputEl.classList.remove('hidden');
-            outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-spinner animate-spin"></i> Executing Python code in Pyodide WASM...</div>`;
 
-            if (!pyodideReady && !isPyodideLoading) {
+            if (!pyodideReady) {
+                outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-spinner animate-spin"></i> Initializing Python WASM runtime (one-time setup)...</div>`;
+                await new Promise(r => setTimeout(r, 50));
                 await initPyodideEngine();
             }
 
             if (pyodideReady && pyodide) {
                 try {
+                    outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-cloud-arrow-down animate-bounce"></i> Loading required packages...</div>`;
+                    await new Promise(r => setTimeout(r, 50));
+
+                    // Load only packages imported in this code block dynamically
+                    await pyodide.loadPackagesFromImports(code);
+
+                    outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-gear animate-spin"></i> Executing Python code...</div>`;
+                    await new Promise(r => setTimeout(r, 50));
+
                     let stdoutLogs = [];
                     let stderrLogs = [];
                     pyodide.setStdout({ write: (s) => stdoutLogs.push(s) });
