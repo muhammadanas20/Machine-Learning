@@ -821,77 +821,116 @@
             localStorage.setItem('ml_theme', isDark ? 'dark' : 'light');
         }
 
-        // Dynamic Pyodide Script Loader (Loads Pyodide only when user triggers execution)
-        function loadPyodideScript() {
-            return new Promise((resolve, reject) => {
-                if (window.loadPyodide) return resolve();
-                const script = document.createElement('script');
-                script.src = "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js";
-                script.onload = () => resolve();
-                script.onerror = (e) => reject(e);
-                document.head.appendChild(script);
-            });
-        }
+        // ===== BACKGROUND WEB WORKER FOR PYODIDE WASM =====
+        let pyodideWorker = null;
+        let datasetContentsCache = null;
 
-        // ===== PYODIDE ENGINE INITIALIZATION (ON DEMAND) =====
-        async function initPyodideEngine() {
-            if (pyodideReady) return pyodide;
-            if (isPyodideLoading) {
-                while (isPyodideLoading) {
-                    await new Promise(r => setTimeout(r, 100));
-                }
-                return pyodide;
-            }
-            isPyodideLoading = true;
-
-            updatePyodideBadge('loading', 'Loading Pyodide...');
-            await new Promise(r => setTimeout(r, 50)); // Yield thread
-
-            try {
-                await loadPyodideScript();
-
-                updatePyodideBadge('loading', 'Loading WASM Core...');
-                await new Promise(r => setTimeout(r, 50));
-
-                pyodide = await loadPyodide({
-                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/"
-                });
-
-                updatePyodideBadge('loading', 'Mounting datasets...');
-                await mountDatasetsToPyodide();
-
-                // Intercept Matplotlib for inline PNG rendering
-                await pyodide.runPythonAsync(`
-import sys, io
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-                `);
-
-                pyodideReady = true;
-                isPyodideLoading = false;
-                updatePyodideBadge('ready', 'Python WASM Ready');
-                return pyodide;
-            } catch (e) {
-                console.warn('Pyodide WASM load failed/skipped:', e);
-                isPyodideLoading = false;
-                updatePyodideBadge('error', 'Pyodide Fallback Mode');
-                return null;
-            }
-        }
-
-        async function mountDatasetsToPyodide() {
-            if (!pyodide) return;
+        async function fetchDatasetsContent() {
+            if (datasetContentsCache) return datasetContentsCache;
+            datasetContentsCache = [];
             for (const ds of DATASETS_REGISTRY) {
                 try {
                     const res = await fetch(ds.path);
                     if (res.ok) {
                         const text = await res.text();
-                        const fname = ds.path.split('/').pop();
-                        pyodide.FS.writeFile(fname, text);
+                        datasetContentsCache.push({ path: ds.path, content: text });
                     }
-                } catch(e) {}
+                } catch(e){}
             }
+            return datasetContentsCache;
+        }
+
+        function getPyodideWorker() {
+            if (pyodideWorker) return pyodideWorker;
+
+            const workerScript = `
+                importScripts("https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js");
+                let pyodide = null;
+                let isMounted = false;
+
+                async function initPyodideInWorker() {
+                    if (pyodide) return pyodide;
+                    self.postMessage({ type: 'status', text: 'Initializing WASM background worker...' });
+                    pyodide = await loadPyodide({
+                        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/"
+                    });
+
+                    self.postMessage({ type: 'status', text: 'Setting up matplotlib...' });
+                    await pyodide.runPythonAsync(\`
+import sys, io
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+\`);
+                    self.postMessage({ type: 'status', text: 'Python WASM Worker Ready' });
+                    return pyodide;
+                }
+
+                self.onmessage = async function(e) {
+                    const { code, datasets } = e.data;
+                    try {
+                        const engine = await initPyodideInWorker();
+
+                        if (!isMounted && datasets && datasets.length > 0) {
+                            self.postMessage({ type: 'status', text: 'Mounting course datasets...' });
+                            for (const ds of datasets) {
+                                try {
+                                    const fname = ds.path.split('/').pop();
+                                    engine.FS.writeFile(fname, ds.content);
+                                } catch(e){}
+                            }
+                            isMounted = true;
+                        }
+
+                        self.postMessage({ type: 'status', text: 'Loading required packages...' });
+                        await engine.loadPackagesFromImports(code);
+
+                        self.postMessage({ type: 'status', text: 'Executing Python code...' });
+
+                        let stdoutLogs = [];
+                        let stderrLogs = [];
+                        engine.setStdout({ write: (s) => stdoutLogs.push(s) });
+                        engine.setStderr({ write: (s) => stderrLogs.push(s) });
+
+                        await engine.runPythonAsync(\`plt.close('all')\`);
+
+                        const wrappedCode = \`
+import sys, io, base64
+_output_img_base64 = None
+\${code}
+if 'plt' in locals() or 'matplotlib.pyplot' in sys.modules:
+    import matplotlib.pyplot as _plt
+    if _plt.get_fignums():
+        _buf = io.BytesIO()
+        _plt.savefig(_buf, format='png', bbox_inches='tight', dpi=120)
+        _buf.seek(0)
+        _output_img_base64 = base64.b64encode(_buf.read()).decode('utf-8')
+        _plt.close('all')
+\`;
+
+                        const result = await engine.runPythonAsync(wrappedCode);
+                        let imgBase64 = null;
+                        try { imgBase64 = engine.globals.get('_output_img_base64'); } catch(err){}
+
+                        self.postMessage({
+                            type: 'result',
+                            stdout: stdoutLogs.join(''),
+                            stderr: stderrLogs.join(''),
+                            result: (result !== undefined && result !== null && String(result) !== 'None') ? String(result) : null,
+                            imgBase64: imgBase64
+                        });
+                    } catch (err) {
+                        self.postMessage({
+                            type: 'error',
+                            error: err.message
+                        });
+                    }
+                };
+            `;
+
+            const blob = new Blob([workerScript], { type: 'application/javascript' });
+            pyodideWorker = new Worker(URL.createObjectURL(blob));
+            return pyodideWorker;
         }
 
         function updatePyodideBadge(status, text) {
@@ -920,74 +959,67 @@ import matplotlib.pyplot as plt
             const code = codeEl.value || codeEl.textContent;
 
             outputEl.classList.remove('hidden');
+            outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-spinner animate-spin"></i> Dispatching code to Web Worker...</div>`;
 
-            if (!pyodideReady) {
-                outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-spinner animate-spin"></i> Initializing Python WASM runtime (one-time setup)...</div>`;
-                await new Promise(r => setTimeout(r, 50));
-                await initPyodideEngine();
+            updatePyodideBadge('loading', 'Worker active...');
+
+            try {
+                const worker = getPyodideWorker();
+                const datasets = await fetchDatasetsContent();
+
+                const timeout = setTimeout(() => {
+                    outputEl.innerHTML = `<div class="p-3 text-xs font-mono text-amber-400"><i class="fa-solid fa-cloud"></i> Worker execution timeout (20s limit). Falling back to Cloud API...</div>`;
+                    if (pyodideWorker) {
+                        pyodideWorker.terminate();
+                        pyodideWorker = null;
+                    }
+                    executeCodeCloud(code, outputEl);
+                }, 20000);
+
+                worker.onmessage = (e) => {
+                    const data = e.data;
+                    if (data.type === 'status') {
+                        outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-spinner animate-spin"></i> ${escapeHTML(data.text)}</div>`;
+                        updatePyodideBadge('loading', data.text);
+                    } else if (data.type === 'result') {
+                        clearTimeout(timeout);
+                        updatePyodideBadge('ready', 'Python WASM Ready');
+
+                        let outputHTML = '';
+                        const stdoutStr = (data.stdout || '').trim();
+                        const stderrStr = (data.stderr || '').trim();
+
+                        if (stdoutStr) {
+                            outputHTML += `<pre class="font-mono text-xs text-emerald-400 whitespace-pre-wrap p-2 border-b border-[var(--border-color)]">${escapeHTML(stdoutStr)}</pre>`;
+                        }
+                        if (stderrStr) {
+                            outputHTML += `<pre class="font-mono text-xs text-amber-300 whitespace-pre-wrap p-2 border-b border-[var(--border-color)]">${escapeHTML(stderrStr)}</pre>`;
+                        }
+                        if (data.result) {
+                            outputHTML += `<pre class="font-mono text-xs text-cyan-300 whitespace-pre-wrap p-2">${escapeHTML(data.result)}</pre>`;
+                        }
+                        if (data.imgBase64) {
+                            outputHTML += `<div class="p-3 bg-slate-950 flex justify-center border-t border-[var(--border-color)]"><img src="data:image/png;base64,${data.imgBase64}" class="max-w-full rounded-lg border border-slate-700 shadow-md max-h-96 object-contain" alt="Matplotlib Chart"></div>`;
+                        }
+
+                        if (!outputHTML) {
+                            outputHTML = `<div class="text-slate-400 text-xs italic p-3">Cell executed cleanly with no return output.</div>`;
+                        }
+
+                        outputEl.innerHTML = outputHTML;
+                    } else if (data.type === 'error') {
+                        clearTimeout(timeout);
+                        updatePyodideBadge('error', 'Execution Error');
+                        outputEl.innerHTML = `<div class="p-3 text-xs font-mono text-red-400 bg-red-950/30 rounded-lg border border-red-800/50"><div class="font-bold mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Runtime Exception:</div><pre class="whitespace-pre-wrap">${escapeHTML(data.error)}</pre></div>`;
+                    }
+                };
+
+                worker.postMessage({ code, datasets });
+            } catch (err) {
+                console.warn("Worker creation error, falling back to Cloud API:", err);
+                executeCodeCloud(code, outputEl);
             }
-
-            if (pyodideReady && pyodide) {
-                try {
-                    outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-cloud-arrow-down animate-bounce"></i> Loading required packages...</div>`;
-                    await new Promise(r => setTimeout(r, 50));
-
-                    // Load only packages imported in this code block dynamically
-                    await pyodide.loadPackagesFromImports(code);
-
-                    outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-gear animate-spin"></i> Executing Python code...</div>`;
-                    await new Promise(r => setTimeout(r, 50));
-
-                    let stdoutLogs = [];
-                    let stderrLogs = [];
-                    pyodide.setStdout({ write: (s) => stdoutLogs.push(s) });
-                    pyodide.setStderr({ write: (s) => stderrLogs.push(s) });
-
-                    await pyodide.runPythonAsync(`plt.close('all')`);
-
-                    const wrappedCode = `
-import sys, io, base64
-_output_img_base64 = None
-${code}
-if 'plt' in locals() or 'matplotlib.pyplot' in sys.modules:
-    import matplotlib.pyplot as _plt
-    if _plt.get_fignums():
-        _buf = io.BytesIO()
-        _plt.savefig(_buf, format='png', bbox_inches='tight', dpi=120)
-        _buf.seek(0)
-        _output_img_base64 = base64.b64encode(_buf.read()).decode('utf-8')
-        _plt.close('all')
-`;
-
-                    const result = await pyodide.runPythonAsync(wrappedCode);
-                    let imgBase64 = null;
-                    try { imgBase64 = pyodide.globals.get('_output_img_base64'); } catch(e){}
-
-                    let outputHTML = '';
-                    const stdoutStr = stdoutLogs.join('').trim();
-                    const stderrStr = stderrLogs.join('').trim();
-
-                    if (stdoutStr) {
-                        outputHTML += `<pre class="font-mono text-xs text-emerald-400 whitespace-pre-wrap p-2 border-b border-[var(--border-color)]">${escapeHTML(stdoutStr)}</pre>`;
-                    }
-                    if (stderrStr) {
-                        outputHTML += `<pre class="font-mono text-xs text-amber-300 whitespace-pre-wrap p-2 border-b border-[var(--border-color)]">${escapeHTML(stderrStr)}</pre>`;
-                    }
-                    if (result !== undefined && result !== null && String(result) !== 'None') {
-                        outputHTML += `<pre class="font-mono text-xs text-cyan-300 whitespace-pre-wrap p-2">${escapeHTML(String(result))}</pre>`;
-                    }
-                    if (imgBase64) {
-                        outputHTML += `<div class="p-3 bg-slate-950 flex justify-center border-t border-[var(--border-color)]"><img src="data:image/png;base64,${imgBase64}" class="max-w-full rounded-lg border border-slate-700 shadow-md max-h-96 object-contain" alt="Matplotlib Chart"></div>`;
-                    }
-
-                    if (!outputHTML) {
-                        outputHTML = `<div class="text-slate-400 text-xs italic p-3">Cell executed cleanly with no return output.</div>`;
-                    }
-
-                    outputEl.innerHTML = outputHTML;
-                    return;
-                } catch (err) {
-                    outputEl.innerHTML = `<div class="p-3 text-xs font-mono text-red-400 bg-red-950/30 rounded-lg border border-red-800/50"><div class="font-bold mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Runtime Exception:</div><pre class="whitespace-pre-wrap">${escapeHTML(err.message)}</pre></div>`;
+        }
                     return;
                 }
             }
