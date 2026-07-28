@@ -855,13 +855,6 @@
                         indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/"
                     });
 
-                    self.postMessage({ type: 'status', text: 'Setting up matplotlib...' });
-                    await pyodide.runPythonAsync(\`
-import sys, io
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-\`);
                     self.postMessage({ type: 'status', text: 'Python WASM Worker Ready' });
                     return pyodide;
                 }
@@ -885,6 +878,14 @@ import matplotlib.pyplot as plt
                         self.postMessage({ type: 'status', text: 'Loading required packages...' });
                         await engine.loadPackagesFromImports(code);
 
+                        // Safe matplotlib backend setup if imported
+                        await engine.runPythonAsync(\`
+import sys
+if 'matplotlib' in sys.modules:
+    import matplotlib
+    matplotlib.use('Agg')
+\`);
+
                         self.postMessage({ type: 'status', text: 'Executing Python code...' });
 
                         let stdoutLogs = [];
@@ -892,20 +893,24 @@ import matplotlib.pyplot as plt
                         engine.setStdout({ write: (s) => stdoutLogs.push(s) });
                         engine.setStderr({ write: (s) => stderrLogs.push(s) });
 
-                        await engine.runPythonAsync(\`plt.close('all')\`);
-
                         const wrappedCode = \`
-import sys, io, base64
+import sys
 _output_img_base64 = None
-\${code}
-if 'plt' in locals() or 'matplotlib.pyplot' in sys.modules:
-    import matplotlib.pyplot as _plt
-    if _plt.get_fignums():
-        _buf = io.BytesIO()
-        _plt.savefig(_buf, format='png', bbox_inches='tight', dpi=120)
-        _buf.seek(0)
-        _output_img_base64 = base64.b64encode(_buf.read()).decode('utf-8')
-        _plt.close('all')
+
+${code}
+
+if 'matplotlib.pyplot' in sys.modules or 'plt' in locals() or 'plt' in globals():
+    try:
+        import matplotlib.pyplot as _plt
+        if _plt.get_fignums():
+            import io, base64
+            _buf = io.BytesIO()
+            _plt.savefig(_buf, format='png', bbox_inches='tight', dpi=120)
+            _buf.seek(0)
+            _output_img_base64 = base64.b64encode(_buf.read()).decode('utf-8')
+            _plt.close('all')
+    except Exception:
+        pass
 \`;
 
                         const result = await engine.runPythonAsync(wrappedCode);
