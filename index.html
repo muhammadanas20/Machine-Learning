@@ -9,8 +9,13 @@
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23141824'/%3E%3Crect x='3' y='3' width='58' height='58' rx='12' fill='%231b2030'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='32' font-weight='900' fill='%2360a5fa'%3EML%3C/text%3E%3Ccircle cx='52' cy='14' r='6' fill='%2334d399'/%3E%3C/svg%3E">
     
-    <!-- Tailwind CSS v4 CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
     
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -28,9 +33,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
-    
-    <!-- Pyodide Python WebAssembly Engine -->
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -819,6 +821,18 @@
             localStorage.setItem('ml_theme', isDark ? 'dark' : 'light');
         }
 
+        // Dynamic Pyodide Script Loader (Loads Pyodide only when user triggers execution)
+        function loadPyodideScript() {
+            return new Promise((resolve, reject) => {
+                if (window.loadPyodide) return resolve();
+                const script = document.createElement('script');
+                script.src = "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js";
+                script.onload = () => resolve();
+                script.onerror = (e) => reject(e);
+                document.head.appendChild(script);
+            });
+        }
+
         // ===== PYODIDE ENGINE INITIALIZATION (ON DEMAND) =====
         async function initPyodideEngine() {
             if (pyodideReady) return pyodide;
@@ -830,10 +844,15 @@
             }
             isPyodideLoading = true;
 
-            updatePyodideBadge('loading', 'Loading WASM Core...');
-            await new Promise(r => setTimeout(r, 50)); // Yield thread to avoid freezing UI
+            updatePyodideBadge('loading', 'Loading Pyodide...');
+            await new Promise(r => setTimeout(r, 50)); // Yield thread
 
             try {
+                await loadPyodideScript();
+
+                updatePyodideBadge('loading', 'Loading WASM Core...');
+                await new Promise(r => setTimeout(r, 50));
+
                 pyodide = await loadPyodide({
                     indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/"
                 });
