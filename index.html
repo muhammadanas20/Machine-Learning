@@ -1020,14 +1020,6 @@ if 'plt' in locals() or 'matplotlib.pyplot' in sys.modules:
                 executeCodeCloud(code, outputEl);
             }
         }
-                    return;
-                }
-            }
-
-            // Fallback: Judge0 Cloud Execution API
-            outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-cloud"></i> Executing code via Judge0 Cloud API...</div>`;
-            await executeCodeCloud(code, outputEl);
-        }
 
         async function executeCodeCloud(code, outputEl) {
             try {
