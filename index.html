@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Masterclass — Machine Learning & Deep Learning Notebook Hub</title>
+    <meta name="description" content="Interactive Machine Learning & Deep Learning course platform featuring live Pyodide Python execution, notebook viewer, dataset explorer, progress tracking, and math references.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23141824'/%3E%3Crect x='3' y='3' width='58' height='58' rx='12' fill='%231b2030'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='32' font-weight='900' fill='%2360a5fa'%3EML%3C/text%3E%3Ccircle cx='52' cy='14' r='6' fill='%2334d399'/%3E%3C/svg%3E">
+    
+    <!-- Tailwind CSS v4 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- KaTeX for Math Equations -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for Code Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css" id="highlight-theme">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+    
+    <!-- Pyodide Python WebAssembly Engine -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===== DESIGN TOKENS ===== */
+        :root {
+            --bg-color: #e6edf8;
+            --surface-color: #e6edf8;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --neu-shadow-dark: #b8c4d8;
+            --neu-shadow-light: #ffffff;
+            --card-bg: #e6edf8;
+            --code-bg: #f8fafc;
+            --code-text: #0f172a;
+            --accent-primary: #2563eb;
+            --accent-secondary: #059669;
+            --accent-heart: #ef4444;
+        }
+
+        .dark {
+            --bg-color: #141824;
+            --surface-color: #141824;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: #1e2638;
+            --neu-shadow-dark: #0d1018;
+            --neu-shadow-light: #1b2030;
+            --card-bg: #141824;
+            --code-bg: #0d1017;
+            --code-text: #f1f5f9;
+            --accent-primary: #60a5fa;
+            --accent-secondary: #34d399;
+            --accent-heart: #f87171;
+        }
+
+        * { font-family: 'Inter', system-ui, sans-serif; }
+        code, pre, .font-mono { font-family: 'Fira Code', monospace; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* ===== NEUMORPHIC UTILITIES ===== */
+        .neu-flat {
+            background: var(--surface-color);
+            box-shadow: 6px 6px 14px var(--neu-shadow-dark), -6px -6px 14px var(--neu-shadow-light);
+            border-radius: 16px;
+        }
+
+        .neu-pressed {
+            background: var(--surface-color);
+            box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -4px -4px 8px var(--neu-shadow-light);
+            border-radius: 12px;
+        }
+
+        .neu-button {
+            background: var(--surface-color);
+            box-shadow: 5px 5px 10px var(--neu-shadow-dark), -5px -5px 10px var(--neu-shadow-light);
+            border-radius: 12px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            user-select: none;
+            border: none;
+        }
+
+        .neu-button:hover {
+            box-shadow: 7px 7px 14px var(--neu-shadow-dark), -7px -7px 14px var(--neu-shadow-light);
+            transform: translateY(-1px);
+        }
+
+        .neu-button:active, .neu-button.active {
+            box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -3px -3px 6px var(--neu-shadow-light);
+            transform: translateY(1px);
+        }
+
+        .neu-pill {
+            background: var(--surface-color);
+            box-shadow: 3px 3px 6px var(--neu-shadow-dark), -3px -3px 6px var(--neu-shadow-light);
+            border-radius: 9999px;
+        }
+
+        .neu-input {
+            background: var(--surface-color);
+            box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -3px -3px 6px var(--neu-shadow-light);
+            border: 1px solid transparent;
+            transition: border-color 0.2s ease;
+        }
+
+        .neu-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        /* ===== HEART BUTTON ===== */
+        .neu-heart-btn {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: var(--surface-color);
+            box-shadow: 4px 4px 10px var(--neu-shadow-dark), -4px -4px 10px var(--neu-shadow-light);
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+
+        .neu-heart-btn:hover { transform: scale(1.05); }
+
+        .neu-heart-btn.is-favorite {
+            box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -3px -3px 6px var(--neu-shadow-light);
+        }
+
+        .neu-heart-btn i {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            transition: color 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .neu-heart-btn.is-favorite i {
+            color: var(--accent-heart);
+            transform: scale(1.15);
+            filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.4));
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--surface-color); }
+        ::-webkit-scrollbar-thumb { background: var(--neu-shadow-dark); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* ===== MARKDOWN BODY ===== */
+        .markdown-body h1 { font-size: 1.85rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; color: var(--accent-primary); }
+        .markdown-body h2 { font-size: 1.45rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3rem; }
+        .markdown-body h3 { font-size: 1.2rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.5rem; color: #38bdf8; }
+        .markdown-body h4 { font-size: 1.05rem; font-weight: 600; margin-top: 0.75rem; margin-bottom: 0.4rem; }
+        .markdown-body p { margin-bottom: 0.85rem; line-height: 1.7; }
+        .markdown-body ul, .markdown-body ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+        .markdown-body ul { list-style-type: disc; }
+        .markdown-body ol { list-style-type: decimal; }
+        .markdown-body li { margin-bottom: 0.35rem; line-height: 1.6; }
+        .markdown-body blockquote { border-left: 4px solid var(--accent-primary); padding-left: 1rem; color: var(--text-muted); font-style: italic; margin-bottom: 1rem; background: rgba(96, 165, 250, 0.05); padding-top: 0.5rem; padding-bottom: 0.5rem; border-radius: 0 8px 8px 0; }
+        .markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; overflow-x: auto; display: block; }
+        .markdown-body th, .markdown-body td { border: 1px solid var(--border-color); padding: 0.5rem 0.8rem; text-align: left; }
+        .markdown-body th { background: rgba(0,0,0,0.15); font-weight: 600; color: var(--accent-primary); }
+        .markdown-body code:not(pre code) { background: rgba(96, 165, 250, 0.15); padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 0.875em; color: var(--accent-primary); }
+        .markdown-body pre { margin-bottom: 1rem; border-radius: 12px; overflow-x: auto; background-color: var(--code-bg); border: 1px solid var(--border-color); padding: 1rem; }
+        .markdown-body pre code { background: transparent !important; padding: 0 !important; }
+        .markdown-body strong { font-weight: 700; }
+        .markdown-body em { font-style: italic; }
+        .markdown-body hr { border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0; }
+
+        /* ===== CODE HIGHLIGHT OVERRIDES & TERMINAL ===== */
+        pre code.hljs {
+            background: var(--code-bg) !important;
+            color: var(--code-text) !important;
+            border-radius: 12px;
+        }
+
+        .crt-terminal {
+            background-color: var(--code-bg);
+            color: var(--code-text);
+            font-family: 'Fira Code', Courier, monospace;
+            border-radius: 12px;
+            box-shadow: inset 2px 2px 6px var(--neu-shadow-dark), inset -2px -2px 6px var(--neu-shadow-light);
+            border: 1px solid var(--border-color);
+        }
+
+        .desktop-collapsed {
+            transform: translateX(-100%);
+            width: 0 !important;
+            min-width: 0 !important;
+            overflow: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-blue-500/30 selection:text-blue-200">
+
+    <!-- TOP HEADER BAR -->
+    <header class="sticky top-0 z-30 w-full backdrop-blur-md bg-[var(--surface-color)]/90 border-b border-[var(--border-color)] px-4 py-3 shadow-md">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            
+            <!-- Left Branding & Mobile Toggle -->
+            <div class="flex items-center gap-3">
+                <button id="toggle-sidebar-btn" class="neu-button p-2.5 px-3 flex items-center justify-center text-[var(--text-main)]" title="Toggle Navigation">
+                    <i class="fa-solid fa-bars text-sm sidebar-icon transition-transform duration-300"></i>
+                </button>
+                <div class="flex items-center gap-2 cursor-pointer" onclick="loadRepoOverview()">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">
+                        <i class="fa-solid fa-brain text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-base font-bold tracking-tight text-[var(--text-main)] flex items-center gap-2">
+                            <span>ML Masterclass</span>
+                            <span class="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Bible</span>
+                        </h1>
+                        <p class="text-[11px] text-[var(--text-muted)] hidden sm:block">Machine Learning & Deep Learning Curriculum</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Search Bar -->
+            <div class="flex-1 max-w-md hidden md:block">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)]"></i>
+                    <input type="text" id="global-search" placeholder="Search 13 weeks, algorithms, models, math, datasets..." class="neu-input w-full pl-9 pr-4 py-1.5 text-xs rounded-xl text-[var(--text-main)] placeholder-[var(--text-muted)]">
+                </div>
+            </div>
+
+            <!-- Right Action Items & Pyodide Status -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                
+                <!-- Pyodide Engine Status Indicator -->
+                <div id="pyodide-status-badge" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-800/80 border border-slate-700 text-slate-300" title="In-Browser Python WASM Runtime Status">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping" id="pyodide-dot"></span>
+                    <span id="pyodide-status-text">Pyodide Standby</span>
+                </div>
+
+                <!-- Datasets Explorer Modal Trigger -->
+                <button onclick="openDatasetsModal()" class="neu-button px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-amber-400" title="Course Datasets Explorer">
+                    <i class="fa-solid fa-database"></i>
+                    <span class="hidden sm:inline">Datasets</span>
+                </button>
+
+                <!-- Playground Sandbox Modal Trigger -->
+                <button onclick="openPlaygroundModal()" class="neu-button px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-emerald-400" title="Open Python Sandbox">
+                    <i class="fa-solid fa-terminal"></i>
+                    <span class="hidden sm:inline">Python Sandbox</span>
+                </button>
+
+                <!-- Bookmarks Button -->
+                <button onclick="toggleFavoritesDrawer()" class="neu-button p-2 px-3 text-xs font-semibold flex items-center gap-1.5 text-red-400 relative" title="Saved Notebooks">
+                    <i class="fa-solid fa-heart"></i>
+                    <span id="fav-badge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">0</span>
+                </button>
+
+                <!-- Dark / Light Theme Toggle -->
+                <button onclick="toggleTheme()" class="neu-button p-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)]" title="Toggle Theme">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block text-amber-300"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN BODY CONTAINER -->
+    <div class="flex-1 flex w-full relative overflow-hidden max-w-full">
+        
+        <!-- SIDEBAR OVERLAY FOR MOBILE -->
+        <div id="sidebar-overlay" onclick="closeSidebarMobile()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 opacity-0 pointer-events-none transition-opacity duration-300 lg:hidden"></div>
+
+        <!-- SIDEBAR NAVIGATION -->
+        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-20 w-80 shrink-0 bg-[var(--surface-color)] border-r border-[var(--border-color)] flex flex-col transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 h-[calc(100vh-57px)]">
+            
+            <!-- Sidebar Header & Progress Bar -->
+            <div class="p-4 border-b border-[var(--border-color)] flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Course Roadmap</span>
+                    <span id="completion-stat" class="text-xs font-semibold text-emerald-400">0% Done</span>
+                </div>
+                <div class="w-full h-2 rounded-full neu-pressed overflow-hidden p-0.5">
+                    <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 rounded-full transition-all duration-500 w-0"></div>
+                </div>
+                
+                <!-- Mobile Search Field -->
+                <div class="relative block md:hidden mt-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)]"></i>
+                    <input type="text" id="mobile-search" placeholder="Search modules & topics..." class="neu-input w-full pl-8 pr-3 py-1 text-xs rounded-lg text-[var(--text-main)]">
+                </div>
+            </div>
+
+            <!-- Sidebar Navigation Items List -->
+            <div id="sidebar-curriculum-list" class="flex-1 overflow-y-auto p-3 space-y-2">
+                <!-- Dynamically Rendered by JS -->
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="p-3 border-t border-[var(--border-color)] bg-slate-900/30 text-center">
+                <a href="https://github.com/muhammadanas20/Machine-Learning" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1.5">
+                    <i class="fa-brands fa-github"></i>
+                    <span>GitHub Repository</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- MAIN VIEWPORT CONTAINER -->
+        <main class="flex-1 flex flex-col min-w-0 h-[calc(100vh-57px)] overflow-y-auto relative p-4 sm:p-6 md:p-8">
+            
+            <!-- NOTEBOOK HEADER (Hidden on Overview) -->
+            <div id="notebook-header-container" class="hidden mb-6 flex flex-col gap-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 neu-flat p-4 sm:p-6 border border-[var(--border-color)]">
+                    <div class="space-y-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span id="header-week-badge" class="px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Week 01</span>
+                            <span id="header-topic-badge" class="px-2.5 py-0.5 text-[11px] font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Fundamentals</span>
+                        </div>
+                        <h2 id="header-notebook-title" class="text-xl sm:text-2xl font-bold text-[var(--text-main)] tracking-tight">Notebook Title</h2>
+                        <p id="header-notebook-desc" class="text-xs sm:text-sm text-[var(--text-muted)] max-w-3xl">Notebook description goes here...</p>
+                    </div>
+
+                    <!-- Header Action Buttons -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button id="favorite-toggle-btn" onclick="toggleCurrentNotebookFavorite()" class="neu-heart-btn" title="Bookmark Notebook">
+                            <i class="fa-solid fa-heart"></i>
+                        </button>
+                        <button id="mark-complete-btn" onclick="toggleNotebookCompletion()" class="neu-button px-3 py-2 text-xs font-semibold flex items-center gap-1.5 text-[var(--text-muted)]">
+                            <i class="fa-regular fa-circle-check"></i>
+                            <span>Mark Done</span>
+                        </button>
+                        <a id="colab-link-btn" href="#" target="_blank" class="neu-button px-3 py-2 text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-rocket"></i>
+                            <span class="hidden sm:inline">Colab</span>
+                        </a>
+                        <a id="github-link-btn" href="#" target="_blank" class="neu-button px-3 py-2 text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                            <i class="fa-brands fa-github"></i>
+                            <span class="hidden sm:inline">GitHub</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WELCOME / REPO OVERVIEW VIEW -->
+            <div id="welcome-view" class="space-y-8 max-w-5xl mx-auto w-full py-4">
+                
+                <!-- Hero Banner -->
+                <div class="neu-flat p-6 sm:p-10 relative overflow-hidden border border-blue-500/20 bg-gradient-to-br from-slate-900/80 via-[var(--surface-color)] to-indigo-950/40">
+                    <div class="relative z-10 space-y-4">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-semibold">
+                            <i class="fa-solid fa-sparkles"></i> Complete 13-Week Machine Learning & Deep Learning Bible
+                        </div>
+                        <h1 class="text-2xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 tracking-tight">
+                            Master Machine Learning & Deep Learning with Live Code Execution
+                        </h1>
+                        <p class="text-sm sm:text-base text-[var(--text-muted)] max-w-3xl leading-relaxed">
+                            An interactive, production-ready curriculum covering Python, Data Science, Math for ML, Supervised & Unsupervised Learning, Feature Engineering, Ensemble Methods, Hyperparameter Tuning, Deep Learning, CNNs, RNNs, Transformers, and Transfer Learning.
+                        </p>
+
+                        <!-- Quick Feature Pills -->
+                        <div class="flex flex-wrap items-center gap-3 pt-2">
+                            <div class="neu-pill px-3.5 py-1.5 text-xs font-medium text-blue-400 flex items-center gap-2">
+                                <i class="fa-brands fa-python text-sm"></i> Pyodide WASM Engine
+                            </div>
+                            <div class="neu-pill px-3.5 py-1.5 text-xs font-medium text-emerald-400 flex items-center gap-2">
+                                <i class="fa-solid fa-database text-sm"></i> Real Datasets (CSV)
+                            </div>
+                            <div class="neu-pill px-3.5 py-1.5 text-xs font-medium text-amber-400 flex items-center gap-2">
+                                <i class="fa-solid fa-chart-line text-sm"></i> Live Matplotlib Plots
+                            </div>
+                            <div class="neu-pill px-3.5 py-1.5 text-xs font-medium text-purple-400 flex items-center gap-2">
+                                <i class="fa-solid fa-book text-sm"></i> Maths Reference PDF
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course Stats Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="neu-flat p-4 text-center space-y-1">
+                        <div class="text-2xl font-bold text-blue-400">13</div>
+                        <div class="text-xs text-[var(--text-muted)] font-medium">Structured Weeks</div>
+                    </div>
+                    <div class="neu-flat p-4 text-center space-y-1">
+                        <div class="text-2xl font-bold text-emerald-400">350+</div>
+                        <div class="text-xs text-[var(--text-muted)] font-medium">Interactive Cells</div>
+                    </div>
+                    <div class="neu-flat p-4 text-center space-y-1">
+                        <div class="text-2xl font-bold text-amber-400">3</div>
+                        <div class="text-xs text-[var(--text-muted)] font-medium">Real Datasets</div>
+                    </div>
+                    <div class="neu-flat p-4 text-center space-y-1">
+                        <div class="text-2xl font-bold text-purple-400">100%</div>
+                        <div class="text-xs text-[var(--text-muted)] font-medium">In-Browser Python</div>
+                    </div>
+                </div>
+
+                <!-- Curriculum Roadmap Cards Grid -->
+                <div class="space-y-4">
+                    <h2 class="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-blue-400"></i> Course Modules Overview
+                    </h2>
+                    <div id="overview-modules-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                </div>
+
+                <!-- Course Datasets & Maths Book Resource Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                    
+                    <!-- Datasets Card -->
+                    <div class="neu-flat p-6 space-y-4 border border-amber-500/20">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-database text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-[var(--text-main)]">Course Datasets Hub</h3>
+                                <p class="text-xs text-[var(--text-muted)]">Download & explore real CSV datasets used in exercises</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2 text-xs">
+                            <div class="p-2.5 rounded-lg neu-pressed flex items-center justify-between">
+                                <span class="font-medium">Telco Customer Churn (Sample & Full)</span>
+                                <span class="text-[10px] text-amber-400 font-mono">CSV (31 KB / 977 KB)</span>
+                            </div>
+                            <div class="p-2.5 rounded-lg neu-pressed flex items-center justify-between">
+                                <span class="font-medium">Bike Sharing Daily Dataset</span>
+                                <span class="text-[10px] text-amber-400 font-mono">CSV (57 KB)</span>
+                            </div>
+                        </div>
+                        <button onclick="openDatasetsModal()" class="w-full neu-button py-2 text-xs font-bold text-amber-400 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-table"></i> Open Datasets Explorer
+                        </button>
+                    </div>
+
+                    <!-- Maths Book Card -->
+                    <div class="neu-flat p-6 space-y-4 border border-purple-500/20">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-book-open text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-[var(--text-main)]">Machine Learning Maths Book</h3>
+                                <p class="text-xs text-[var(--text-muted)]">Core mathematical foundations reference PDF</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+                            Comprehensive reference guide covering Linear Algebra, Multivariable Calculus, Vector Derivatives, Probability Distributions, and Optimization techniques.
+                        </p>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openMathsBookModal()" class="flex-1 neu-button py-2 text-xs font-bold text-purple-400 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-eye"></i> View PDF Reference
+                            </button>
+                            <a href="Machine learning maths book.pdf" download class="neu-button p-2 text-xs text-slate-300" title="Download PDF">
+                                <i class="fa-solid fa-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- NOTEBOOK CELLS DISPLAY CONTAINER -->
+            <div id="cells-container" class="hidden space-y-6 max-w-4xl mx-auto w-full pb-16">
+                <!-- Dynamically rendered notebook cells -->
+            </div>
+
+        </main>
+    </div>
+
+    <!-- FAVORITES DRAWER -->
+    <div id="favorites-drawer" class="fixed inset-y-0 right-0 z-40 w-80 bg-[var(--surface-color)] border-l border-[var(--border-color)] shadow-2xl transition-transform duration-300 transform translate-x-full flex flex-col">
+        <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between">
+            <h3 class="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
+                <i class="fa-solid fa-heart text-red-400"></i> Bookmarked Notebooks
+            </h3>
+            <button onclick="toggleFavoritesDrawer()" class="neu-button p-1.5 px-2.5 text-xs text-[var(--text-muted)]">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div id="favorites-list" class="flex-1 overflow-y-auto p-4 space-y-3">
+            <!-- Rendered by JS -->
+        </div>
+    </div>
+
+    <!-- DATASETS EXPLORER MODAL -->
+    <div id="datasets-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="neu-flat w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden border border-amber-500/30">
+            <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between bg-slate-900/50">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-database text-amber-400 text-lg"></i>
+                    <h3 class="text-base font-bold text-[var(--text-main)]">Course Datasets Explorer</h3>
+                </div>
+                <button onclick="closeDatasetsModal()" class="neu-button p-1.5 px-2.5 text-xs text-[var(--text-muted)]">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 bg-slate-900/30 border-b border-[var(--border-color)] flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2 flex-wrap" id="dataset-selector-buttons">
+                    <!-- Buttons generated dynamically -->
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="load-ds-sandbox-btn" class="neu-button px-3 py-1.5 text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-play"></i> Load in Sandbox
+                    </button>
+                    <a id="download-ds-btn" href="#" download class="neu-button px-3 py-1.5 text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i> Download CSV
+                    </a>
+                </div>
+            </div>
+
+            <!-- Dataset Content & Table Preview -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <div id="dataset-meta-info" class="text-xs text-[var(--text-muted)] neu-pressed p-3 flex flex-wrap items-center justify-between gap-2">
+                    <span>Select a dataset above to preview structure and data.</span>
+                </div>
+                <div id="dataset-table-container" class="overflow-x-auto rounded-xl border border-[var(--border-color)]">
+                    <!-- Table rendered dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MATHS BOOK MODAL -->
+    <div id="maths-book-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="neu-flat w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden border border-purple-500/30">
+            <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between bg-slate-900/50">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-purple-400 text-lg"></i>
+                    <h3 class="text-base font-bold text-[var(--text-main)]">Machine Learning Maths Book Reference</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="Machine learning maths book.pdf" download class="neu-button px-3 py-1.5 text-xs font-bold text-purple-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i> Download PDF
+                    </a>
+                    <button onclick="closeMathsBookModal()" class="neu-button p-1.5 px-2.5 text-xs text-[var(--text-muted)]">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 bg-slate-950 p-2">
+                <iframe src="Machine learning maths book.pdf" class="w-full h-full rounded-lg border-0"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- PLAYGROUND SANDBOX MODAL -->
+    <div id="playground-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="neu-flat w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-emerald-500/30">
+            <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between bg-slate-900/50">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-terminal text-emerald-400 text-lg"></i>
+                    <h3 class="text-base font-bold text-[var(--text-main)]">Interactive Python Sandbox (Pyodide WASM)</h3>
+                </div>
+                <button onclick="closePlaygroundModal()" class="neu-button p-1.5 px-2.5 text-xs text-[var(--text-muted)]">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Controls bar -->
+            <div class="p-3 bg-slate-900/30 border-b border-[var(--border-color)] flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-[var(--text-muted)] font-semibold">Starter Code:</label>
+                    <select id="sandbox-template-select" onchange="loadSandboxTemplate()" class="neu-input px-3 py-1 text-xs rounded-lg text-[var(--text-main)] font-medium">
+                        <option value="basics">1. Python Basics & Loops</option>
+                        <option value="numpy">2. NumPy Vectorization & Math</option>
+                        <option value="pandas">3. Pandas & Telco Churn Dataset</option>
+                        <option value="matplotlib">4. Matplotlib Plot Rendering</option>
+                        <option value="sklearn">5. Scikit-Learn Decision Tree</option>
+                    </select>
+                </div>
+                <button id="run-sandbox-btn" onclick="executePlaygroundCode()" class="neu-button px-4 py-1.5 text-xs font-bold text-emerald-400 flex items-center gap-2">
+                    <i class="fa-solid fa-play"></i> Execute Code
+                </button>
+            </div>
+
+            <!-- Code Editor & Output Pane Split -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-[var(--text-muted)] mb-1 block">Python Editor:</label>
+                    <textarea id="sandbox-editor" rows="10" class="neu-input w-full p-3 font-mono text-xs text-blue-300 rounded-xl leading-relaxed resize-y bg-slate-950/60 focus:outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-[var(--text-muted)] mb-1 block">Output Terminal & Plots:</label>
+                    <div id="sandbox-output" class="crt-terminal p-3 text-xs min-h-[120px] max-h-80 overflow-y-auto font-mono text-slate-300">
+                        Click "Execute Code" to run code using Pyodide Python WASM engine...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // ===== CURRICULUM DATA REGISTRY =====
+        const CURRICULUM_DATA = [
+            {
+                section: "Section_02_Week_01_Python_Programming_Basics",
+                weekNum: "Week 01",
+                topic: "Fundamentals",
+                title: "Python Programming Fundamentals",
+                desc: "Master variables, data types, control structures, functions, OOP, list comprehensions, and Pythonic patterns.",
+                path: "Section_02_Week_01_Python_Programming_Basics/notebooks/Week01_Python_Fundamentals.ipynb",
+                icon: "fa-brands fa-python",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_02_Week_01_Python_Programming_Basics/notebooks/Week01_Python_Fundamentals.ipynb"
+            },
+            {
+                section: "Section_03_Week_02_Data_Science_Essentials",
+                weekNum: "Week 02",
+                topic: "Data Science",
+                title: "NumPy, Pandas & Visualization",
+                desc: "Broadcasting, indexing, DataFrame manipulation, Seaborn/Matplotlib charts, and data cleaning routines.",
+                path: "Section_03_Week_02_Data_Science_Essentials/notebooks/Week02_NumPy_Pandas_Visualization.ipynb",
+                icon: "fa-solid fa-chart-simple",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_03_Week_02_Data_Science_Essentials/notebooks/Week02_NumPy_Pandas_Visualization.ipynb"
+            },
+            {
+                section: "Section_04_Week_03_Mathematics_for_Machine_Learning",
+                weekNum: "Week 03",
+                topic: "Mathematics",
+                title: "Math for Machine Learning",
+                desc: "Linear Algebra (vectors, matrices, eigenvalues), Calculus (derivatives, gradients), and Probability foundations.",
+                path: "Section_04_Week_03_Mathematics_for_Machine_Learning/notebooks/Week03_Math_for_ML.ipynb",
+                icon: "fa-solid fa-square-root-variable",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_04_Week_03_Mathematics_for_Machine_Learning/notebooks/Week03_Math_for_ML.ipynb"
+            },
+            {
+                section: "Section_05_Week_04_Probability_and_Statistics",
+                weekNum: "Week 04",
+                topic: "Statistics",
+                title: "Applied Probability & Regression",
+                desc: "Distributions, hypothesis testing, confidence intervals, and building Linear Regression from scratch.",
+                path: "Section_05_Week_04_Probability_and_Statistics/notebooks/Week04_Applied_Probability_Statistics_Regression.ipynb",
+                icon: "fa-solid fa-calculator",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_05_Week_04_Probability_and_Statistics/notebooks/Week04_Applied_Probability_Statistics_Regression.ipynb"
+            },
+            {
+                section: "Section_06_Week_05_Introduction_to_Machine_Learning",
+                weekNum: "Week 05",
+                topic: "Supervised ML",
+                title: "The Real ML Workflow",
+                desc: "Train/test splits, Linear & Logistic Regression, Decision Trees, and metrics (MSE, F1, ROC-AUC).",
+                path: "Section_06_Week_05_Introduction_to_Machine_Learning/notebooks/Week05_Train_Test_Regression_Classification.ipynb",
+                dataset: "Section_06_Week_05_Introduction_to_Machine_Learning/data/Telco-Customer-Churn.csv",
+                icon: "fa-solid fa-robot",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_06_Week_05_Introduction_to_Machine_Learning/notebooks/Week05_Train_Test_Regression_Classification.ipynb"
+            },
+            {
+                section: "Section_07_Week_06_Feature_Engineering_and_Model_Evaluation",
+                weekNum: "Week 06",
+                topic: "Pipelines",
+                title: "Feature Engineering & Pipelines",
+                desc: "One-Hot/Label encoding, StandardScaler, MinMaxScaler, Feature Selection, Imputation & Scikit-Learn Pipelines.",
+                path: "Section_07_Week_06_Feature_Engineering_and_Model_Evaluation/notebooks/Week06_Feature_Engineering.ipynb",
+                dataset: "Section_07_Week_06_Feature_Engineering_and_Model_Evaluation/data/bike_sharing_daily.csv",
+                icon: "fa-solid fa-gears",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_07_Week_06_Feature_Engineering_and_Model_Evaluation/notebooks/Week06_Feature_Engineering.ipynb"
+            },
+            {
+                section: "Section_08_Week_07_Advanced_Machine_Learning_Algorithms",
+                weekNum: "Week 07",
+                topic: "Ensembles",
+                title: "Advanced ML & Ensemble Methods",
+                desc: "Random Forests, Gradient Boosting, XGBoost, LightGBM, AdaBoost, and Stacking/Voting Classifiers.",
+                path: "Section_08_Week_07_Advanced_Machine_Learning_Algorithms/notebooks/Week07_Ensemble_Methods.ipynb",
+                dataset: "Section_08_Week_07_Advanced_Machine_Learning_Algorithms/data/Telco-Customer-Churn.csv",
+                icon: "fa-solid fa-tree",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_08_Week_07_Advanced_Machine_Learning_Algorithms/notebooks/Week07_Ensemble_Methods.ipynb"
+            },
+            {
+                section: "Section_09_Week_08_Model_Tuning_and_Optimization",
+                weekNum: "Week 08",
+                topic: "Tuning",
+                title: "Hyperparameter Tuning & Evaluation",
+                desc: "GridSearchCV, RandomizedSearchCV, Optuna optimization, cross-validation, and bias-variance analysis.",
+                path: "Section_09_Week_08_Model_Tuning_and_Optimization/notebooks/Week08_Hyperparameter_Tuning.ipynb",
+                dataset: "Section_09_Week_08_Model_Tuning_and_Optimization/data/Telco-Customer-Churn-Full.csv",
+                icon: "fa-solid fa-sliders",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_09_Week_08_Model_Tuning_and_Optimization/notebooks/Week08_Hyperparameter_Tuning.ipynb"
+            },
+            {
+                section: "Section_10_Week_09_Neural_Networks_and_Deep_Learning",
+                weekNum: "Week 09",
+                topic: "Deep Learning",
+                title: "Deep Learning Foundations",
+                desc: "Perceptrons, Neural Networks (ANN), activations (ReLU, Softmax), backpropagation, TensorFlow & PyTorch.",
+                path: "Section_10_Week_09_Neural_Networks_and_Deep_Learning/notebooks/Week09_Deep_Learning_Foundations.ipynb",
+                icon: "fa-solid fa-network-wired",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_10_Week_09_Neural_Networks_and_Deep_Learning/notebooks/Week09_Deep_Learning_Foundations.ipynb"
+            },
+            {
+                section: "Section_11_Week_10_Convolutional_Neural_Networks",
+                weekNum: "Week 10",
+                topic: "Computer Vision",
+                title: "Convolutional Neural Networks (CNNs)",
+                desc: "Convolutions, pooling, strides, padding, ResNet architectures, Fashion-MNIST & image augmentations.",
+                path: "Section_11_Week_10_Convolutional_Neural_Networks/notebooks/Week10_CNNs_In_Depth.ipynb",
+                icon: "fa-solid fa-image",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_11_Week_10_Convolutional_Neural_Networks/notebooks/Week10_CNNs_In_Depth.ipynb"
+            },
+            {
+                section: "Section_12_Week_11_Recurrent_Neural_Networks",
+                weekNum: "Week 11",
+                topic: "Sequential ML",
+                title: "Recurrent Neural Networks (RNNs)",
+                desc: "SimpleRNN, LSTM cells, GRU networks, vanishing gradients, and sequence-to-sequence forecasting.",
+                path: "Section_12_Week_11_Recurrent_Neural_Networks/notebooks/Week11_RNN_LSTM_GRU.ipynb",
+                icon: "fa-solid fa-wave-square",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_12_Week_11_Recurrent_Neural_Networks/notebooks/Week11_RNN_LSTM_GRU.ipynb"
+            },
+            {
+                section: "Section_13_Week_12_Transformers_and_Attention",
+                weekNum: "Week 12",
+                topic: "NLP & GenAI",
+                title: "Transformers & Attention Mechanisms",
+                desc: "Self-Attention, Multi-Head Attention, Positional Encoding, Transformer Encoder/Decoder, BERT & GPT.",
+                path: "Section_13_Week_12_Transformers_and_Attention/notebooks/Week12_Transformers_Attention_BERT_GPT.ipynb",
+                icon: "fa-solid fa-brain",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_13_Week_12_Transformers_and_Attention/notebooks/Week12_Transformers_Attention_BERT_GPT.ipynb"
+            },
+            {
+                section: "Section_14_Week_13_Transfer_Learning_and_Fine_Tuning",
+                weekNum: "Week 13",
+                topic: "Fine-Tuning",
+                title: "Transfer Learning & Fine-Tuning",
+                desc: "Pre-trained CNNs/Transformers, feature extraction vs fine-tuning, LoRA/PEFT, and end-to-end Capstone project.",
+                path: "Section_14_Week_13_Transfer_Learning_and_Fine_Tuning/notebooks/Week13_Transfer_Learning_Fine_Tuning.ipynb",
+                icon: "fa-solid fa-bolt",
+                colab: "https://colab.research.google.com/github/muhammadanas20/Machine-Learning/blob/master/Section_14_Week_13_Transfer_Learning_and_Fine_Tuning/notebooks/Week13_Transfer_Learning_Fine_Tuning.ipynb"
+            }
+        ];
+
+        // ===== DATASETS REGISTRY =====
+        const DATASETS_REGISTRY = [
+            {
+                id: "telco_sample",
+                name: "Telco Customer Churn (Sample)",
+                path: "Section_06_Week_05_Introduction_to_Machine_Learning/data/Telco-Customer-Churn.csv",
+                size: "31 KB",
+                desc: "Customer demographics, account details, and churn classification target."
+            },
+            {
+                id: "bike_daily",
+                name: "Bike Sharing Daily Dataset",
+                path: "Section_07_Week_06_Feature_Engineering_and_Model_Evaluation/data/bike_sharing_daily.csv",
+                size: "57 KB",
+                desc: "Daily bike rental counts along with weather, temperature, humidity, and seasonal features."
+            },
+            {
+                id: "telco_full",
+                name: "Telco Customer Churn (Full Dataset)",
+                path: "Section_09_Week_08_Model_Tuning_and_Optimization/data/Telco-Customer-Churn-Full.csv",
+                size: "977 KB",
+                desc: "Full dataset with 7,000+ records for hyperparameter tuning and model optimization."
+            }
+        ];
+
+        // ===== APPLICATION STATE =====
+        let currentNotebookPath = null;
+        let favorites = JSON.parse(localStorage.getItem('ml_favorites') || '[]');
+        let completedNotebooks = JSON.parse(localStorage.getItem('ml_completed') || '[]');
+
+        // Pyodide State
+        let pyodide = null;
+        let pyodideReady = false;
+        let isPyodideLoading = false;
+
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTheme();
+            renderSidebar();
+            renderOverviewGrid();
+            setupSearchListeners();
+            updateProgressStats();
+            updateFavoritesBadge();
+            setupSidebarMobileToggle();
+            
+            // Check Hash route
+            const hash = window.location.hash.replace('#', '');
+            if (hash) {
+                const found = CURRICULUM_DATA.find(n => n.path === hash || n.section === hash);
+                if (found) loadNotebook(found.path);
+            }
+
+            // Lazy initialize Pyodide in background
+            setTimeout(() => {
+                initPyodideEngine();
+            }, 1000);
+        });
+
+        // ===== THEME MANAGMENT =====
+        function setupTheme() {
+            const savedTheme = localStorage.getItem('ml_theme') || 'dark';
+            if (savedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+            } else {
+                document.documentElement.classList.add('dark');
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('ml_theme', isDark ? 'dark' : 'light');
+        }
+
+        // ===== PYODIDE ENGINE INITIALIZATION =====
+        async function initPyodideEngine() {
+            if (pyodideReady || isPyodideLoading) return;
+            isPyodideLoading = true;
+
+            updatePyodideBadge('loading', 'Loading WASM...');
+
+            try {
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/"
+                });
+
+                updatePyodideBadge('loading', 'Loading Packages...');
+                await pyodide.loadPackage(['numpy', 'pandas', 'matplotlib', 'scikit-learn']);
+
+                // Mount Datasets to Pyodide Virtual File System
+                await mountDatasetsToPyodide();
+
+                // Intercept Matplotlib for inline PNG rendering
+                await pyodide.runPythonAsync(`
+import sys, io
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+                `);
+
+                pyodideReady = true;
+                isPyodideLoading = false;
+                updatePyodideBadge('ready', 'Pyodide Python Ready');
+            } catch (e) {
+                console.warn('Pyodide WASM load failed/skipped:', e);
+                isPyodideLoading = false;
+                updatePyodideBadge('error', 'Pyodide Fallback Mode');
+            }
+        }
+
+        async function mountDatasetsToPyodide() {
+            if (!pyodide) return;
+            for (const ds of DATASETS_REGISTRY) {
+                try {
+                    const res = await fetch(ds.path);
+                    if (res.ok) {
+                        const text = await res.text();
+                        const fname = ds.path.split('/').pop();
+                        pyodide.FS.writeFile(fname, text);
+                    }
+                } catch(e) {}
+            }
+        }
+
+        function updatePyodideBadge(status, text) {
+            const badge = document.getElementById('pyodide-status-badge');
+            const dot = document.getElementById('pyodide-dot');
+            const statusText = document.getElementById('pyodide-status-text');
+
+            if (!badge) return;
+
+            statusText.textContent = text;
+            if (status === 'ready') {
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400';
+            } else if (status === 'loading') {
+                dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-red-400';
+            }
+        }
+
+        // ===== EXECUTE PYTHON CODE IN CELL / PLAYGROUND =====
+        async function runCellPythonCode(cellId, outputContainerId) {
+            const codeEl = document.getElementById(cellId);
+            const outputEl = document.getElementById(outputContainerId);
+
+            if (!codeEl || !outputEl) return;
+            const code = codeEl.value || codeEl.textContent;
+
+            outputEl.classList.remove('hidden');
+            outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-spinner animate-spin"></i> Executing Python code in Pyodide WASM...</div>`;
+
+            if (!pyodideReady && !isPyodideLoading) {
+                await initPyodideEngine();
+            }
+
+            if (pyodideReady && pyodide) {
+                try {
+                    let stdoutLogs = [];
+                    let stderrLogs = [];
+                    pyodide.setStdout({ write: (s) => stdoutLogs.push(s) });
+                    pyodide.setStderr({ write: (s) => stderrLogs.push(s) });
+
+                    await pyodide.runPythonAsync(`plt.close('all')`);
+
+                    const wrappedCode = `
+import sys, io, base64
+_output_img_base64 = None
+${code}
+if 'plt' in locals() or 'matplotlib.pyplot' in sys.modules:
+    import matplotlib.pyplot as _plt
+    if _plt.get_fignums():
+        _buf = io.BytesIO()
+        _plt.savefig(_buf, format='png', bbox_inches='tight', dpi=120)
+        _buf.seek(0)
+        _output_img_base64 = base64.b64encode(_buf.read()).decode('utf-8')
+        _plt.close('all')
+`;
+
+                    const result = await pyodide.runPythonAsync(wrappedCode);
+                    let imgBase64 = null;
+                    try { imgBase64 = pyodide.globals.get('_output_img_base64'); } catch(e){}
+
+                    let outputHTML = '';
+                    const stdoutStr = stdoutLogs.join('').trim();
+                    const stderrStr = stderrLogs.join('').trim();
+
+                    if (stdoutStr) {
+                        outputHTML += `<pre class="font-mono text-xs text-emerald-400 whitespace-pre-wrap p-2 border-b border-[var(--border-color)]">${escapeHTML(stdoutStr)}</pre>`;
+                    }
+                    if (stderrStr) {
+                        outputHTML += `<pre class="font-mono text-xs text-amber-300 whitespace-pre-wrap p-2 border-b border-[var(--border-color)]">${escapeHTML(stderrStr)}</pre>`;
+                    }
+                    if (result !== undefined && result !== null && String(result) !== 'None') {
+                        outputHTML += `<pre class="font-mono text-xs text-cyan-300 whitespace-pre-wrap p-2">${escapeHTML(String(result))}</pre>`;
+                    }
+                    if (imgBase64) {
+                        outputHTML += `<div class="p-3 bg-slate-950 flex justify-center border-t border-[var(--border-color)]"><img src="data:image/png;base64,${imgBase64}" class="max-w-full rounded-lg border border-slate-700 shadow-md max-h-96 object-contain" alt="Matplotlib Chart"></div>`;
+                    }
+
+                    if (!outputHTML) {
+                        outputHTML = `<div class="text-slate-400 text-xs italic p-3">Cell executed cleanly with no return output.</div>`;
+                    }
+
+                    outputEl.innerHTML = outputHTML;
+                    return;
+                } catch (err) {
+                    outputEl.innerHTML = `<div class="p-3 text-xs font-mono text-red-400 bg-red-950/30 rounded-lg border border-red-800/50"><div class="font-bold mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Runtime Exception:</div><pre class="whitespace-pre-wrap">${escapeHTML(err.message)}</pre></div>`;
+                    return;
+                }
+            }
+
+            // Fallback: Judge0 Cloud Execution API
+            outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-cloud"></i> Executing code via Judge0 Cloud API...</div>`;
+            await executeCodeCloud(code, outputEl);
+        }
+
+        async function executeCodeCloud(code, outputEl) {
+            try {
+                const res = await fetch('https://ce.judge0.com/submissions?wait=true', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ language_id: 92, source_code: code }) // 92: Python 3.11
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const out = (data.stdout || '') + (data.stderr ? `\nStderr:\n${data.stderr}` : '') + (data.compile_output ? `\nCompile:\n${data.compile_output}` : '');
+                    outputEl.innerHTML = `<pre class="font-mono text-xs text-cyan-300 whitespace-pre-wrap p-3">${escapeHTML(out.trim() || '(No stdout)')}</pre>`;
+                } else {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+            } catch (e) {
+                outputEl.innerHTML = `<div class="p-3 text-xs font-mono text-red-400">Execution Error: ${escapeHTML(e.message)}</div>`;
+            }
+        }
+
+        // ===== SIDEBAR NAVIGATION RENDERER =====
+        function renderSidebar(filterQuery = '') {
+            const container = document.getElementById('sidebar-curriculum-list');
+            container.innerHTML = '';
+
+            const q = filterQuery.toLowerCase().trim();
+
+            CURRICULUM_DATA.forEach((item, index) => {
+                if (q && !item.title.toLowerCase().includes(q) && !item.desc.toLowerCase().includes(q) && !item.weekNum.toLowerCase().includes(q)) {
+                    return;
+                }
+
+                const isActive = currentNotebookPath === item.path;
+                const isCompleted = completedNotebooks.includes(item.path);
+                const isFav = favorites.includes(item.path);
+
+                const card = document.createElement('div');
+                card.className = `neu-button p-3 flex flex-col gap-1.5 cursor-pointer transition-all ${isActive ? 'active border-l-4 border-blue-500' : ''}`;
+                card.onclick = () => { loadNotebook(item.path); closeSidebarMobile(); };
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">${item.weekNum}</span>
+                        <div class="flex items-center gap-1.5 text-xs">
+                            ${isFav ? '<i class="fa-solid fa-heart text-red-400"></i>' : ''}
+                            ${isCompleted ? '<i class="fa-solid fa-circle-check text-emerald-400"></i>' : '<i class="fa-regular fa-circle text-[var(--text-muted)]"></i>'}
+                        </div>
+                    </div>
+                    <h4 class="text-xs font-semibold text-[var(--text-main)] line-clamp-1 flex items-center gap-1.5">
+                        <i class="${item.icon} text-blue-400 text-xs shrink-0"></i>
+                        <span>${item.title}</span>
+                    </h4>
+                    <p class="text-[11px] text-[var(--text-muted)] line-clamp-2 leading-relaxed">${item.desc}</p>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // ===== OVERVIEW MODULES GRID =====
+        function renderOverviewGrid() {
+            const grid = document.getElementById('overview-modules-grid');
+            grid.innerHTML = '';
+
+            CURRICULUM_DATA.forEach((item) => {
+                const isDone = completedNotebooks.includes(item.path);
+                const card = document.createElement('div');
+                card.className = 'neu-flat p-5 flex flex-col justify-between gap-3 cursor-pointer hover:border hover:border-blue-500/40 transition-all';
+                card.onclick = () => loadNotebook(item.path);
+
+                card.innerHTML = `
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">${item.weekNum}</span>
+                            ${isDone ? '<span class="text-xs font-semibold text-emerald-400 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Completed</span>' : ''}
+                        </div>
+                        <h3 class="text-base font-bold text-[var(--text-main)] flex items-center gap-2">
+                            <i class="${item.icon} text-blue-400"></i>
+                            <span>${item.title}</span>
+                        </h3>
+                        <p class="text-xs text-[var(--text-muted)] leading-relaxed">${item.desc}</p>
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-[var(--border-color)] text-xs font-semibold text-blue-400">
+                        <span>Explore Notebook</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // ===== LOAD AND RENDER JUPYTER NOTEBOOK =====
+        async function loadNotebook(path) {
+            currentNotebookPath = path;
+            window.location.hash = path;
+
+            const meta = CURRICULUM_DATA.find(n => n.path === path);
+
+            // Update UI elements
+            document.getElementById('welcome-view').classList.add('hidden');
+            document.getElementById('notebook-header-container').classList.remove('hidden');
+            const cellsContainer = document.getElementById('cells-container');
+            cellsContainer.classList.remove('hidden');
+
+            document.getElementById('header-week-badge').textContent = meta ? meta.weekNum : 'Module';
+            document.getElementById('header-topic-badge').textContent = meta ? meta.topic : 'Notebook';
+            document.getElementById('header-notebook-title').textContent = meta ? meta.title : path;
+            document.getElementById('header-notebook-desc').textContent = meta ? meta.desc : '';
+
+            document.getElementById('colab-link-btn').href = meta ? meta.colab : '#';
+            document.getElementById('github-link-btn').href = `https://github.com/muhammadanas20/Machine-Learning/blob/master/${path}`;
+
+            updateHeaderButtonsState();
+            renderSidebar();
+
+            cellsContainer.innerHTML = `
+                <div class="neu-flat p-8 text-center space-y-3">
+                    <i class="fa-solid fa-circle-notch animate-spin text-2xl text-blue-400"></i>
+                    <p class="text-xs text-[var(--text-muted)] font-mono">Fetching Jupyter notebook (.ipynb)...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(path);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const notebookData = await response.json();
+                renderNotebookCells(notebookData);
+            } catch (err) {
+                console.warn('Notebook fetch error:', err);
+                renderFallbackNotebookContent(meta, path);
+            }
+        }
+
+        // RENDER CELLS
+        function renderNotebookCells(notebook) {
+            const container = document.getElementById('cells-container');
+            container.innerHTML = '';
+
+            if (!notebook.cells || notebook.cells.length === 0) {
+                container.innerHTML = `<div class="neu-flat p-6 text-center text-xs text-[var(--text-muted)]">No cells found in notebook.</div>`;
+                return;
+            }
+
+            notebook.cells.forEach((cell, idx) => {
+                const cellWrapper = document.createElement('div');
+                cellWrapper.className = 'neu-flat p-4 sm:p-6 space-y-3 border border-[var(--border-color)] relative';
+
+                const sourceText = Array.isArray(cell.source) ? cell.source.join('') : (cell.source || '');
+
+                if (cell.cell_type === 'markdown') {
+                    const mdDiv = document.createElement('div');
+                    mdDiv.className = 'markdown-body text-sm text-[var(--text-main)]';
+                    mdDiv.innerHTML = marked.parse(sourceText);
+                    
+                    // Render Math equations via KaTeX
+                    renderMathInElement(mdDiv, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$', right: '$', display: false},
+                            {left: '\\(', right: '\\)', display: false},
+                            {left: '\\[', right: '\\]', display: true}
+                        ],
+                        throwOnError: false
+                    });
+                    
+                    cellWrapper.appendChild(mdDiv);
+                } else if (cell.cell_type === 'code') {
+                    const cellId = `code-input-${idx}`;
+                    const outputId = `code-output-${idx}`;
+
+                    cellWrapper.innerHTML = `
+                        <div class="flex items-center justify-between pb-2 border-b border-[var(--border-color)]">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400">In [${idx + 1}]</span>
+                                <span class="text-[11px] font-mono text-[var(--text-muted)]">Python 3</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="copyCodeCell('${cellId}')" class="neu-button px-2.5 py-1 text-[11px] font-semibold text-[var(--text-muted)] hover:text-[var(--text-main)]" title="Copy Code">
+                                    <i class="fa-regular fa-copy"></i> Copy
+                                </button>
+                                <button onclick="runCellPythonCode('${cellId}', '${outputId}')" class="neu-button px-3 py-1 text-[11px] font-bold text-emerald-400 flex items-center gap-1.5" title="Run Code">
+                                    <i class="fa-solid fa-play"></i> Run Cell
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Code Editor Block -->
+                        <div class="relative">
+                            <textarea id="${cellId}" class="hidden">${escapeHTML(sourceText)}</textarea>
+                            <pre class="rounded-xl overflow-x-auto text-xs p-4 border border-[var(--border-color)] bg-[var(--code-bg)]"><code class="language-python">${escapeHTML(sourceText)}</code></pre>
+                        </div>
+
+                        <!-- Pre-existing or Executed Output Display -->
+                        <div id="${outputId}" class="${cell.outputs && cell.outputs.length > 0 ? '' : 'hidden'} space-y-2 pt-2 border-t border-[var(--border-color)]">
+                            ${renderNotebookCellOutputs(cell.outputs)}
+                        </div>
+                    `;
+                }
+
+                container.appendChild(cellWrapper);
+            });
+
+            // Highlight syntax
+            container.querySelectorAll('pre code').forEach((el) => {
+                hljs.highlightElement(el);
+            });
+        }
+
+        // Render saved notebook cell outputs (charts, stdout, dataframes)
+        function renderNotebookCellOutputs(outputs) {
+            if (!outputs || outputs.length === 0) return '';
+
+            return outputs.map(out => {
+                if (out.output_type === 'stream') {
+                    const text = Array.isArray(out.text) ? out.text.join('') : (out.text || '');
+                    return `<pre class="font-mono text-xs text-emerald-400 bg-slate-950/80 p-3 rounded-lg overflow-x-auto whitespace-pre-wrap">${escapeHTML(text)}</pre>`;
+                } else if (out.output_type === 'execute_result' || out.output_type === 'display_data') {
+                    const data = out.data || {};
+                    if (data['image/png']) {
+                        return `<div class="p-3 bg-slate-950 rounded-lg flex justify-center border border-slate-800"><img src="data:image/png;base64,${data['image/png']}" class="max-w-full max-h-96 object-contain rounded" alt="Cell Plot"></div>`;
+                    }
+                    if (data['text/html']) {
+                        const html = Array.isArray(data['text/html']) ? data['text/html'].join('') : data['text/html'];
+                        return `<div class="overflow-x-auto text-xs font-mono p-2 bg-slate-950/50 rounded">${html}</div>`;
+                    }
+                    if (data['text/plain']) {
+                        const text = Array.isArray(data['text/plain']) ? data['text/plain'].join('') : data['text/plain'];
+                        return `<pre class="font-mono text-xs text-cyan-300 bg-slate-950/80 p-3 rounded-lg overflow-x-auto whitespace-pre-wrap">${escapeHTML(text)}</pre>`;
+                    }
+                } else if (out.output_type === 'error') {
+                    const trace = Array.isArray(out.traceback) ? out.traceback.join('\n') : (out.evalue || 'Error');
+                    return `<pre class="font-mono text-xs text-red-400 bg-red-950/30 p-3 rounded-lg border border-red-800/50 overflow-x-auto whitespace-pre-wrap">${escapeHTML(trace)}</pre>`;
+                }
+                return '';
+            }).join('');
+        }
+
+        // FALLBACK FOR UNAVAILABLE FETCH
+        function renderFallbackNotebookContent(meta, path) {
+            const container = document.getElementById('cells-container');
+            const simulatedData = {
+                cells: [
+                    {
+                        cell_type: 'markdown',
+                        source: `# ${meta ? meta.title : 'Machine Learning Notebook'}\n\n> **Note:** Loading notebook content from relative path. You can also view on Google Colab or GitHub.\n\n### Core Topics\n- Master algorithms, data preprocessing, and evaluation metrics.\n- Execute Python code directly in browser via Pyodide WASM.`
+                    },
+                    {
+                        cell_type: 'code',
+                        source: `import numpy as np\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\n# Sample Machine Learning script for ${meta ? meta.title : path}\nprint("ML Masterclass — ${path}")\n\nx = np.linspace(0, 10, 100)\ny = np.sin(x)\n\nplt.figure(figsize=(6,3))\nplt.plot(x, y, color='cyan', label='sin(x)')\nplt.title("Sample Matplotlib Plot")\nplt.legend()\nplt.show()`
+                    }
+                ]
+            };
+            renderNotebookCells(simulatedData);
+        }
+
+        // ===== DATASETS EXPLORER MODAL =====
+        let currentSelectedDataset = DATASETS_REGISTRY[0];
+
+        function openDatasetsModal() {
+            const modal = document.getElementById('datasets-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            renderDatasetButtons();
+            loadDatasetPreview(currentSelectedDataset);
+        }
+
+        function closeDatasetsModal() {
+            const modal = document.getElementById('datasets-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function renderDatasetButtons() {
+            const container = document.getElementById('dataset-selector-buttons');
+            container.innerHTML = '';
+
+            DATASETS_REGISTRY.forEach(ds => {
+                const btn = document.createElement('button');
+                const isSelected = currentSelectedDataset.id === ds.id;
+                btn.className = `neu-button px-3 py-1.5 text-xs font-semibold ${isSelected ? 'text-amber-400 active' : 'text-[var(--text-muted)]'}`;
+                btn.textContent = ds.name;
+                btn.onclick = () => loadDatasetPreview(ds);
+                container.appendChild(btn);
+            });
+        }
+
+        async function loadDatasetPreview(ds) {
+            currentSelectedDataset = ds;
+            renderDatasetButtons();
+
+            document.getElementById('download-ds-btn').href = ds.path;
+            document.getElementById('load-ds-sandbox-btn').onclick = () => {
+                closeDatasetsModal();
+                openPlaygroundModal();
+                document.getElementById('sandbox-editor').value = `import pandas as pd\n\n# Load course dataset\ndf = pd.read_csv('${ds.path.split('/').pop()}')\nprint("Dataset Shape:", df.shape)\nprint("\\nColumns:", list(df.columns))\nprint("\\nDataset Preview:")
+df.head()`;
+            };
+
+            const metaInfo = document.getElementById('dataset-meta-info');
+            const tableContainer = document.getElementById('dataset-table-container');
+
+            metaInfo.innerHTML = `<span class="font-mono font-bold text-amber-400">${ds.name}</span> <span>Path: ${ds.path}</span> <span>Size: ${ds.size}</span>`;
+            tableContainer.innerHTML = `<div class="p-8 text-center text-xs text-[var(--text-muted)] font-mono animate-pulse">Loading CSV data preview...</div>`;
+
+            try {
+                const res = await fetch(ds.path);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const csvText = await res.text();
+                renderCSVTable(csvText, tableContainer);
+            } catch (e) {
+                tableContainer.innerHTML = `<div class="p-6 text-center text-xs text-red-400 font-mono">Failed to load CSV preview. Download file to inspect.</div>`;
+            }
+        }
+
+        function renderCSVTable(csvText, container) {
+            const lines = csvText.trim().split('\n').filter(l => l.trim());
+            if (lines.length === 0) {
+                container.innerHTML = `<div class="p-4 text-xs text-slate-400">Empty CSV file.</div>`;
+                return;
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            const rows = lines.slice(1, 15).map(l => l.split(',').map(c => c.trim().replace(/^"|"$/g, '')));
+
+            let tableHTML = `
+                <table class="w-full text-xs text-left text-slate-200 border-collapse">
+                    <thead class="bg-slate-900 text-amber-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-800">
+                        <tr>${headers.map(h => `<th class="p-2.5 border-r border-slate-800">${escapeHTML(h)}</th>`).join('')}</tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800 font-mono bg-slate-950/60">
+                        ${rows.map(row => `
+                            <tr class="hover:bg-slate-800/40">
+                                ${row.map(cell => `<td class="p-2 border-r border-slate-800 whitespace-nowrap max-w-xs truncate">${escapeHTML(cell)}</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = tableHTML;
+        }
+
+        // ===== MATHS BOOK MODAL =====
+        function openMathsBookModal() {
+            const modal = document.getElementById('maths-book-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeMathsBookModal() {
+            const modal = document.getElementById('maths-book-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // ===== PLAYGROUND SANDBOX MODAL =====
+        function openPlaygroundModal() {
+            const modal = document.getElementById('playground-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            loadSandboxTemplate();
+        }
+
+        function closePlaygroundModal() {
+            const modal = document.getElementById('playground-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        const PLAYGROUND_TEMPLATES = {
+            basics: `import math
+
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x))
+
+print("=== Python Basics & Math Functions ===")
+values = [-2.0, -1.0, 0.0, 1.0, 2.0]
+for v in values:
+    print(f"Sigmoid({v:5.1f}) = {sigmoid(v):.4f}")`,
+
+            numpy: `import numpy as np
+
+print("=== NumPy Vectorization Demo ===")
+A = np.array([[1, 2], [3, 4]])
+B = np.array([[5, 6], [7, 8]])
+
+print("Matrix A:\\n", A)
+print("\\nMatrix B:\\n", B)
+print("\\nMatrix Multiplication (A @ B):\\n", A @ B)`,
+
+            pandas: `import pandas as pd
+
+# Mounted dataset Telco-Customer-Churn.csv
+try:
+    df = pd.read_csv('Telco-Customer-Churn.csv')
+    print("=== Telco Churn Dataset Summary ===")
+    print("Shape:", df.shape)
+    print("\\nFirst 5 Rows:\\n", df[['customerID', 'gender', 'SeniorCitizen', 'Tenure', 'Churn']].head())
+except Exception as e:
+    print("Error reading dataset:", e)`,
+
+            matplotlib: `import numpy as np
+import matplotlib.pyplot as plt
+
+print("=== Generating Matplotlib Chart ===")
+x = np.linspace(0, 2 * np.pi, 200)
+y1 = np.sin(x)
+y2 = np.cos(x)
+
+plt.figure(figsize=(7, 3.5))
+plt.plot(x, y1, label='Sin(x)', color='#60a5fa', linewidth=2)
+plt.plot(x, y2, label='Cos(x)', color='#34d399', linewidth=2, linestyle='--')
+plt.title('Sine & Cosine Waves', fontsize=12, color='white')
+plt.grid(True, alpha=0.2)
+plt.legend()
+plt.show()`,
+
+            sklearn: `import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+
+# Toy classification problem
+X = np.array([[1, 2], [2, 3], [3, 4], [8, 9], [9, 10], [10, 11]])
+y = np.array([0, 0, 0, 1, 1, 1])
+
+clf = DecisionTreeClassifier()
+clf.fit(X, y)
+
+preds = clf.predict([[2.5, 3.5], [8.5, 9.5]])
+print("=== Decision Tree Classifier Predictions ===")
+print("Predicted classes for [2.5, 3.5] & [8.5, 9.5]:", preds)`
+        };
+
+        function loadSandboxTemplate() {
+            const selected = document.getElementById('sandbox-template-select').value;
+            document.getElementById('sandbox-editor').value = PLAYGROUND_TEMPLATES[selected] || PLAYGROUND_TEMPLATES.basics;
+        }
+
+        async function executePlaygroundCode() {
+            const code = document.getElementById('sandbox-editor').value;
+            const outputEl = document.getElementById('sandbox-output');
+            const runBtn = document.getElementById('run-sandbox-btn');
+
+            runBtn.disabled = true;
+            runBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Executing...';
+
+            await runCellPythonCode('sandbox-editor', 'sandbox-output');
+
+            runBtn.disabled = false;
+            runBtn.innerHTML = '<i class="fa-solid fa-play"></i> Execute Code';
+        }
+
+        // ===== SEARCH & FAVORITES & PROGRESS LOGIC =====
+        function setupSearchListeners() {
+            const searchInput = document.getElementById('global-search');
+            const mobileSearch = document.getElementById('mobile-search');
+
+            const handleSearch = (e) => {
+                const q = e.target.value;
+                renderSidebar(q);
+                if (searchInput !== e.target) searchInput.value = q;
+                if (mobileSearch !== e.target) mobileSearch.value = q;
+            };
+
+            searchInput.addEventListener('input', handleSearch);
+            mobileSearch.addEventListener('input', handleSearch);
+        }
+
+        function toggleNotebookCompletion() {
+            if (!currentNotebookPath) return;
+
+            if (completedNotebooks.includes(currentNotebookPath)) {
+                completedNotebooks = completedNotebooks.filter(p => p !== currentNotebookPath);
+            } else {
+                completedNotebooks.push(currentNotebookPath);
+            }
+
+            localStorage.setItem('ml_completed', JSON.stringify(completedNotebooks));
+            updateProgressStats();
+            updateHeaderButtonsState();
+            renderSidebar();
+            renderOverviewGrid();
+        }
+
+        function updateProgressStats() {
+            const total = CURRICULUM_DATA.length;
+            const percentage = total > 0 ? Math.round((completedNotebooks.length / total) * 100) : 0;
+
+            document.getElementById('completion-stat').textContent = `${percentage}% Done`;
+            document.getElementById('progress-bar-fill').style.width = `${percentage}%`;
+        }
+
+        function toggleFavorite(path) {
+            if (favorites.includes(path)) {
+                favorites = favorites.filter(p => p !== path);
+            } else {
+                favorites.push(path);
+            }
+
+            localStorage.setItem('ml_favorites', JSON.stringify(favorites));
+            updateFavoritesBadge();
+            renderSidebar();
+            updateHeaderButtonsState();
+            renderFavoritesList();
+        }
+
+        function toggleCurrentNotebookFavorite() {
+            if (currentNotebookPath) toggleFavorite(currentNotebookPath);
+        }
+
+        function updateFavoritesBadge() {
+            const badge = document.getElementById('fav-badge');
+            if (favorites.length > 0) {
+                badge.textContent = favorites.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function toggleFavoritesDrawer() {
+            const drawer = document.getElementById('favorites-drawer');
+            drawer.classList.toggle('translate-x-full');
+            renderFavoritesList();
+        }
+
+        function renderFavoritesList() {
+            const container = document.getElementById('favorites-list');
+            if (favorites.length === 0) {
+                container.innerHTML = `<p class="text-xs text-[var(--text-muted)] text-center py-8">No bookmarked notebooks yet.<br>Click the heart icon to save!</p>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            favorites.forEach(path => {
+                const item = CURRICULUM_DATA.find(n => n.path === path);
+                const title = item ? item.title : path;
+
+                const div = document.createElement('div');
+                div.className = 'neu-flat p-3 flex items-center justify-between gap-2 cursor-pointer';
+                div.innerHTML = `
+                    <div class="flex items-center gap-2 min-w-0" onclick="loadNotebook('${path}'); toggleFavoritesDrawer();">
+                        <i class="fa-solid fa-book-bookmark text-blue-400 text-xs"></i>
+                        <span class="text-xs font-semibold text-[var(--text-main)] truncate">${title}</span>
+                    </div>
+                    <button onclick="toggleFavorite('${path}')" class="text-red-400 hover:text-red-500 p-1 shrink-0">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateHeaderButtonsState() {
+            if (!currentNotebookPath) return;
+
+            const isFav = favorites.includes(currentNotebookPath);
+            const isDone = completedNotebooks.includes(currentNotebookPath);
+
+            const heartBtn = document.getElementById('favorite-toggle-btn');
+            isFav ? heartBtn.classList.add('is-favorite') : heartBtn.classList.remove('is-favorite');
+
+            const completeBtn = document.getElementById('mark-complete-btn');
+            if (isDone) {
+                completeBtn.className = 'neu-button px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-emerald-400 active';
+                completeBtn.innerHTML = `<i class="fa-solid fa-circle-check"></i><span>Completed ✓</span>`;
+            } else {
+                completeBtn.className = 'neu-button px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-[var(--text-muted)]';
+                completeBtn.innerHTML = `<i class="fa-regular fa-circle-check"></i><span>Mark Done</span>`;
+            }
+        }
+
+        // ===== SIDEBAR TOGGLE & UTILS =====
+        let sidebarOpen = true;
+
+        function setupSidebarMobileToggle() {
+            const toggleBtn = document.getElementById('toggle-sidebar-btn');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const icon = toggleBtn.querySelector('.sidebar-icon');
+
+            toggleBtn.addEventListener('click', () => {
+                const isDesktop = window.innerWidth >= 1024;
+                if (isDesktop) {
+                    if (sidebarOpen) {
+                        sidebarOpen = false;
+                        sidebar.classList.add('desktop-collapsed');
+                    } else {
+                        sidebarOpen = true;
+                        sidebar.classList.remove('desktop-collapsed');
+                    }
+                } else {
+                    const hidden = sidebar.classList.contains('-translate-x-full');
+                    if (hidden) {
+                        sidebar.classList.remove('-translate-x-full');
+                        overlay.classList.remove('opacity-0', 'pointer-events-none');
+                    } else {
+                        closeSidebarMobile();
+                    }
+                }
+            });
+        }
+
+        function closeSidebarMobile() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function loadRepoOverview() {
+            currentNotebookPath = null;
+            window.location.hash = '';
+            document.getElementById('welcome-view').classList.remove('hidden');
+            document.getElementById('cells-container').classList.add('hidden');
+            document.getElementById('notebook-header-container').classList.add('hidden');
+            renderSidebar();
+        }
+
+        function copyCodeCell(cellId) {
+            const editor = document.getElementById(cellId);
+            if (editor) {
+                const code = editor.value || editor.textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                    const btn = editor.closest('.neu-flat').querySelector('[onclick*="copyCodeCell"]');
+                    if (btn) {
+                        const orig = btn.innerHTML;
+                        btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> Copied!`;
+                        setTimeout(() => { btn.innerHTML = orig; }, 1500);
+                    }
+                });
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
