@@ -326,6 +326,13 @@
             </div>
         </aside>
 
+        <!-- HOVERABLE FLOATING SIDEBAR TOGGLE HANDLE -->
+        <button id="sidebar-edge-toggle" onclick="toggleSidebarDesktop()" class="fixed left-0 lg:left-80 top-1/2 -translate-y-1/2 z-30 opacity-0 hover:opacity-100 focus:opacity-100 transition-all duration-300 group p-2 cursor-pointer hidden lg:block" title="Toggle Sidebar (Collapse / Expand)">
+            <div class="neu-button w-6 h-14 rounded-r-xl flex items-center justify-center text-blue-400 border-y border-r border-blue-500/30 bg-[var(--surface-color)] shadow-xl group-hover:scale-110 transition-transform">
+                <i id="sidebar-edge-icon" class="fa-solid fa-chevron-left text-xs transition-transform duration-300"></i>
+            </div>
+        </button>
+
         <!-- MAIN VIEWPORT CONTAINER -->
         <main class="flex-1 flex flex-col min-w-0 h-[calc(100vh-57px)] overflow-y-auto relative p-4 sm:p-6 md:p-8">
             
@@ -1599,22 +1606,41 @@ print("Predicted classes for [2.5, 3.5] & [8.5, 9.5]:", preds)`
         // ===== SIDEBAR TOGGLE & UTILS =====
         let sidebarOpen = true;
 
+        function toggleSidebarDesktop() {
+            const sidebar = document.getElementById('sidebar');
+            const edgeBtn = document.getElementById('sidebar-edge-toggle');
+            const edgeIcon = document.getElementById('sidebar-edge-icon');
+
+            sidebarOpen = !sidebarOpen;
+            if (!sidebarOpen) {
+                sidebar.classList.add('desktop-collapsed');
+                if (edgeBtn) edgeBtn.style.left = '0px';
+                if (edgeIcon) edgeIcon.className = 'fa-solid fa-chevron-right text-xs transition-transform duration-300';
+                localStorage.setItem('ml_sidebar', 'closed');
+            } else {
+                sidebar.classList.remove('desktop-collapsed');
+                if (edgeBtn) edgeBtn.style.left = '';
+                if (edgeIcon) edgeIcon.className = 'fa-solid fa-chevron-left text-xs transition-transform duration-300';
+                localStorage.setItem('ml_sidebar', 'open');
+            }
+        }
+
         function setupSidebarMobileToggle() {
             const toggleBtn = document.getElementById('toggle-sidebar-btn');
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            const icon = toggleBtn.querySelector('.sidebar-icon');
+
+            // Restore saved state
+            const savedState = localStorage.getItem('ml_sidebar');
+            if (savedState === 'closed' && window.innerWidth >= 1024) {
+                sidebarOpen = true;
+                toggleSidebarDesktop();
+            }
 
             toggleBtn.addEventListener('click', () => {
                 const isDesktop = window.innerWidth >= 1024;
                 if (isDesktop) {
-                    if (sidebarOpen) {
-                        sidebarOpen = false;
-                        sidebar.classList.add('desktop-collapsed');
-                    } else {
-                        sidebarOpen = true;
-                        sidebar.classList.remove('desktop-collapsed');
-                    }
+                    toggleSidebarDesktop();
                 } else {
                     const hidden = sidebar.classList.contains('-translate-x-full');
                     if (hidden) {
