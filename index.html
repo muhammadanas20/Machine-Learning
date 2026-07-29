@@ -34,8 +34,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
 
-    <!-- Pyodide In-Browser Python Engine -->
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+    <!-- Pyodide WASM Engine: loaded lazily on first code execution for fast page load -->
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -301,9 +300,15 @@
                 
                 <!-- Pyodide Engine Status Indicator -->
                 <div id="pyodide-status-badge" class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-800/80 border border-slate-700 text-slate-300" title="In-Browser Python WASM Runtime Status">
-                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping" id="pyodide-dot"></span>
-                    <span id="pyodide-status-text">Pyodide Standby</span>
+                    <span class="w-2 h-2 rounded-full bg-slate-500" id="pyodide-dot"></span>
+                    <span id="pyodide-status-text">Engine Idle</span>
                 </div>
+
+                <!-- Preload Engine Button -->
+                <button id="preload-pyodide-btn" onclick="preloadPyodideEngine()" class="neu-button px-2.5 py-1.5 sm:px-3 text-xs font-semibold flex items-center gap-1.5 text-cyan-400" title="Preload Python WASM Engine in Background">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span class="hidden sm:inline">Preload</span>
+                </button>
 
                 <!-- Datasets Explorer Modal Trigger -->
                 <button onclick="openDatasetsModal()" class="neu-button px-2.5 py-1.5 sm:px-3 text-xs font-semibold flex items-center gap-1.5 text-amber-400" title="Course Datasets Explorer">
@@ -851,12 +856,8 @@
             updateFavoritesBadge();
             setupSidebarMobileToggle();
             
-            // Pre-initialize Pyodide WASM engine immediately
-            try {
-                initPyodideEngine();
-            } catch(e) {
-                console.warn("Pyodide pre-init warning:", e);
-            }
+            // Pyodide WASM engine loads LAZILY on first "Run Cell" click
+            // No eager init = instant page load!
 
             // Check Hash route
             const hash = window.location.hash.replace('#', '');
@@ -881,10 +882,57 @@
             localStorage.setItem('ml_theme', isDark ? 'dark' : 'light');
         }
 
-        // ===== IN-BROWSER PYODIDE WASM ENGINE MANAGER =====
+        // ===== IN-BROWSER PYODIDE WASM ENGINE MANAGER (LAZY-LOADED) =====
         let pyodideInstance = null;
         let pyodideInitPromise = null;
+        let pyodideScriptLoaded = false;
         let datasetContentsCache = null;
+        let loadedPackagesSet = new Set(); // Track which packages are already loaded
+
+        // Known Pyodide-available packages mapped from import names
+        const IMPORT_TO_PACKAGE = {
+            'numpy': 'numpy',
+            'np': 'numpy',
+            'pandas': 'pandas',
+            'pd': 'pandas',
+            'matplotlib': 'matplotlib',
+            'plt': 'matplotlib',
+            'sklearn': 'scikit-learn',
+            'scipy': 'scipy',
+            'micropip': 'micropip',
+            'seaborn': 'seaborn',
+            'sns': 'seaborn',
+        };
+
+        // Detect which packages a code string actually needs
+        function detectRequiredPackages(code) {
+            const needed = new Set();
+            const importRegex = /^\s*(?:import|from)\s+([a-zA-Z_][a-zA-Z0-9_]*)/gm;
+            let match;
+            while ((match = importRegex.exec(code)) !== null) {
+                const mod = match[1];
+                if (IMPORT_TO_PACKAGE[mod]) {
+                    needed.add(IMPORT_TO_PACKAGE[mod]);
+                }
+            }
+            return [...needed];
+        }
+
+        // Dynamically inject the Pyodide <script> tag (only once)
+        function loadPyodideScript() {
+            return new Promise((resolve, reject) => {
+                if (pyodideScriptLoaded || typeof loadPyodide !== 'undefined') {
+                    pyodideScriptLoaded = true;
+                    resolve();
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js';
+                script.onload = () => { pyodideScriptLoaded = true; resolve(); };
+                script.onerror = () => reject(new Error('Failed to load Pyodide script'));
+                document.head.appendChild(script);
+            });
+        }
 
         async function fetchDatasetsContent() {
             if (datasetContentsCache) return datasetContentsCache;
@@ -901,45 +949,102 @@
             return datasetContentsCache;
         }
 
+        // Initialize Pyodide core (no heavy packages yet)
         async function initPyodideEngine() {
             if (pyodideInstance) return pyodideInstance;
             if (pyodideInitPromise) return pyodideInitPromise;
 
             pyodideInitPromise = (async () => {
-                updatePyodideBadge('loading', 'Initializing WASM Python engine...');
                 try {
-                    if (typeof loadPyodide === 'undefined') {
-                        throw new Error('Pyodide script not loaded');
-                    }
+                    // Stage 1: Load the Pyodide script itself
+                    updatePyodideBadge('loading', 'Downloading Python engine...');
+                    await loadPyodideScript();
+
+                    // Stage 2: Initialize Pyodide runtime (no packages yet!)
+                    updatePyodideBadge('loading', 'Initializing WASM runtime...');
                     pyodideInstance = await loadPyodide({
                         indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/"
                     });
 
-                    updatePyodideBadge('loading', 'Loading core libraries (numpy, pandas, matplotlib, sklearn)...');
-                    try {
-                        await pyodideInstance.loadPackage(['numpy', 'pandas', 'matplotlib', 'scikit-learn', 'micropip', 'scipy']);
-                    } catch (pkgErr) {
-                        console.warn("Core package load warning:", pkgErr);
-                    }
-
-                    updatePyodideBadge('loading', 'Mounting course datasets...');
-                    try {
-                        const datasets = await fetchDatasetsContent();
-                        for (const ds of datasets) {
-                            const fname = ds.path.split('/').pop();
-                            try {
-                                pyodideInstance.FS.writeFile(fname, ds.content);
-                            } catch (e) {}
-                        }
-                    } catch (e) {}
-
-                    // Register rich PyTorch WASM tensor & NN stubs
+                    // Stage 3: Only set up matplotlib backend (lightweight)
+                    updatePyodideBadge('loading', 'Configuring runtime...');
                     await pyodideInstance.runPythonAsync(`
-import sys, io, types
+import sys, types
+`);
+
+                    updatePyodideBadge('ready', 'Python Ready ✓');
+                    hidePreloadButton();
+                    return pyodideInstance;
+                } catch (err) {
+                    console.error("Pyodide Engine Init Error:", err);
+                    updatePyodideBadge('error', 'WASM Error');
+                    pyodideInitPromise = null; // Allow retry
+                    throw err;
+                }
+            })();
+
+            return pyodideInitPromise;
+        }
+
+        // Load only the packages that code actually needs (smart/incremental)
+        async function ensurePackagesForCode(py, code) {
+            const required = detectRequiredPackages(code);
+            const toLoad = required.filter(pkg => !loadedPackagesSet.has(pkg));
+
+            if (toLoad.length > 0) {
+                updatePyodideBadge('loading', `Loading ${toLoad.join(', ')}...`);
+                try {
+                    await py.loadPackage(toLoad);
+                    toLoad.forEach(pkg => loadedPackagesSet.add(pkg));
+                } catch (e) {
+                    console.warn('Package load warning:', e);
+                }
+            }
+
+            // Set up matplotlib backend if matplotlib was just loaded
+            if (loadedPackagesSet.has('matplotlib')) {
+                try {
+                    await py.runPythonAsync(`
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+`);
+                } catch(e) {}
+            }
 
+            // Also try Pyodide's built-in import detection as fallback
+            try {
+                await py.loadPackagesFromImports(code);
+            } catch(e) {}
+        }
+
+        // Mount datasets lazily (only when code references CSV files)
+        let datasetsLoaded = false;
+        async function ensureDatasetsLoaded(py, code) {
+            if (datasetsLoaded) return;
+            // Only load datasets if the code references CSV files or pandas read_csv
+            if (!code.includes('.csv') && !code.includes('read_csv')) return;
+
+            updatePyodideBadge('loading', 'Mounting datasets...');
+            try {
+                const datasets = await fetchDatasetsContent();
+                for (const ds of datasets) {
+                    const fname = ds.path.split('/').pop();
+                    try { py.FS.writeFile(fname, ds.content); } catch(e) {}
+                }
+                datasetsLoaded = true;
+            } catch(e) {}
+        }
+
+        // Register PyTorch stubs lazily (only if code uses torch)
+        let torchStubLoaded = false;
+        async function ensureTorchStub(py, code) {
+            if (torchStubLoaded) return;
+            if (!code.includes('import torch') && !code.includes('from torch')) return;
+
+            updatePyodideBadge('loading', 'Setting up PyTorch stubs...');
+            await py.runPythonAsync(`
+import sys, types
 if 'torch' not in sys.modules:
     import numpy as _np
     
@@ -1089,17 +1194,37 @@ if 'torch' not in sys.modules:
     sys.modules['torch'] = _TorchModule()
     import torch
 `);
+            torchStubLoaded = true;
+        }
 
-                    updatePyodideBadge('ready', 'Python WASM Ready');
-                    return pyodideInstance;
-                } catch (err) {
-                    console.error("Pyodide Engine Init Error:", err);
-                    updatePyodideBadge('error', 'WASM Error');
-                    throw err;
-                }
-            })();
+        // Preload button handler (optional background warm-up)
+        async function preloadPyodideEngine() {
+            const btn = document.getElementById('preload-pyodide-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> <span class="hidden sm:inline">Loading...</span>';
+            }
+            try {
+                await initPyodideEngine();
+                // Also preload common packages in background
+                const py = pyodideInstance;
+                updatePyodideBadge('loading', 'Preloading numpy, pandas...');
+                await py.loadPackage(['numpy', 'pandas', 'matplotlib']);
+                ['numpy', 'pandas', 'matplotlib'].forEach(p => loadedPackagesSet.add(p));
+                await py.runPythonAsync(`
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+`);
+                updatePyodideBadge('ready', 'Python Ready ✓ (Preloaded)');
+            } catch(e) {
+                console.warn('Preload error:', e);
+            }
+        }
 
-            return pyodideInitPromise;
+        function hidePreloadButton() {
+            const btn = document.getElementById('preload-pyodide-btn');
+            if (btn) btn.style.display = 'none';
         }
 
         function updatePyodideBadge(status, text) {
@@ -1128,23 +1253,62 @@ if 'torch' not in sys.modules:
             const code = codeEl.value || codeEl.textContent;
 
             outputEl.classList.remove('hidden');
-            outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-spinner animate-spin"></i> Executing Python code...</div>`;
 
-            updatePyodideBadge('loading', 'Executing cell...');
+            // Show first-time loading overlay if engine not ready
+            const isFirstLoad = !pyodideInstance;
+            if (isFirstLoad) {
+                outputEl.innerHTML = `
+                    <div class="p-4 space-y-3 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950/50 rounded-xl border border-blue-500/20">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                <i class="fa-brands fa-python text-blue-400 text-xl animate-pulse"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-blue-300">First-Time Engine Setup</h4>
+                                <p class="text-xs text-slate-400">Downloading Python WASM engine (~11MB). Subsequent runs are instant.</p>
+                            </div>
+                        </div>
+                        <div class="space-y-1.5">
+                            <div class="flex items-center gap-2 text-xs">
+                                <i class="fa-solid fa-spinner animate-spin text-amber-400"></i>
+                                <span class="text-amber-300 font-mono" id="lazy-load-stage">Downloading Pyodide runtime...</span>
+                            </div>
+                            <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-blue-500 to-emerald-400 rounded-full animate-pulse" style="width: 30%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                outputEl.innerHTML = `<div class="text-amber-400 font-mono text-xs animate-pulse p-3"><i class="fa-solid fa-spinner animate-spin"></i> Executing Python code...</div>`;
+            }
+
+            updatePyodideBadge('loading', 'Preparing...');
 
             try {
+                // Lazy init engine
                 const py = await initPyodideEngine();
 
-                try {
-                    await py.loadPackagesFromImports(code);
-                } catch(e) {}
+                // Smart package loading — only what this code needs
+                await ensurePackagesForCode(py, code);
+
+                // Lazy dataset mounting — only if code uses CSV
+                await ensureDatasetsLoaded(py, code);
+
+                // Lazy torch stub — only if code uses torch
+                await ensureTorchStub(py, code);
+
+                updatePyodideBadge('loading', 'Executing cell...');
 
                 let stdoutLogs = [];
                 let stderrLogs = [];
                 py.setStdout({ write: (s) => stdoutLogs.push(s) });
                 py.setStderr({ write: (s) => stderrLogs.push(s) });
 
-                await py.runPythonAsync(`plt.close('all')`);
+                try { await py.runPythonAsync(`
+import matplotlib.pyplot as plt
+plt.close('all')
+`); } catch(e) {}
 
                 if (code.includes('import torch') || code.includes('from torch')) {
                     stdoutLogs.push("[Pyodide WASM Engine]: PyTorch tensors running via browser WASM NumPy compatibility layer.\n");
@@ -1156,7 +1320,7 @@ _output_img_base64 = None
 
 ${code}
 
-if 'plt' in locals() or 'plt' in globals() or 'matplotlib.pyplot' in sys.modules:
+try:
     import matplotlib.pyplot as _plt
     if _plt.get_fignums():
         _buf = io.BytesIO()
@@ -1164,13 +1328,15 @@ if 'plt' in locals() or 'plt' in globals() or 'matplotlib.pyplot' in sys.modules
         _buf.seek(0)
         _output_img_base64 = base64.b64encode(_buf.read()).decode('utf-8')
         _plt.close('all')
+except ImportError:
+    pass
 `;
 
                 const result = await py.runPythonAsync(wrappedCode);
                 let imgBase64 = null;
                 try { imgBase64 = py.globals.get('_output_img_base64'); } catch(e){}
 
-                updatePyodideBadge('ready', 'Python WASM Ready');
+                updatePyodideBadge('ready', 'Python Ready ✓');
 
                 let outputHTML = '';
                 const stdoutStr = (stdoutLogs.join('') || '').trim();
