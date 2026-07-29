@@ -1018,15 +1018,18 @@ import matplotlib.pyplot as plt
             // Capture stdout/stderr
             let stdout = [];
             let stderr = [];
+            const decoder = new TextDecoder();
             pyodide.setStdout({
                 write: (s) => {
-                    stdout.push(s);
+                    const text = typeof s === 'string' ? s : decoder.decode(s);
+                    stdout.push(text);
                     return typeof s === 'string' ? s.length : (s ? (s.length || s.byteLength || 0) : 0);
                 }
             });
             pyodide.setStderr({
                 write: (s) => {
-                    stderr.push(s);
+                    const text = typeof s === 'string' ? s : decoder.decode(s);
+                    stderr.push(text);
                     return typeof s === 'string' ? s.length : (s ? (s.length || s.byteLength || 0) : 0);
                 }
             });
