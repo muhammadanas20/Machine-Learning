@@ -32,6 +32,8 @@
 
 ## ✨ Web App Features
 
+- 📱 **Installable Progressive Web App (PWA)** — installable on mobile Chrome / Android / iOS and desktop. Includes a web app manifest, app icons, a service worker for offline support, an in-app **Install App** prompt, and a mobile bottom navigation bar.
+- ⚡ **Offline-ready** — once visited, the app shell, notebooks, datasets, and math PDF are cached by a service worker so you can keep learning with no connection.
 - 🐍 **Pyodide Python WASM Runtime** — run Python code cells live inside your browser without any server backend. Pre-loaded with `NumPy`, `Pandas`, `Matplotlib`, and `Scikit-Learn`.
 - 📊 **Matplotlib Chart Generation** — code cells automatically capture `plt.show()` and render high-resolution PNG plots directly below the cell.
 - 📁 **Course Datasets Explorer** — inspect, preview, search, download, and load real CSV datasets (`Telco-Customer-Churn.csv`, `bike_sharing_daily.csv`, `Telco-Customer-Churn-Full.csv`) directly into the Python sandbox.
@@ -59,6 +61,9 @@
 ```
 Machine-Learning/
 ├── index.html                                                      ← Interactive Web App
+├── manifest.webmanifest                                            ← PWA manifest (installable app)
+├── sw.js                                                           ← Service worker (offline support)
+├── icons/                                                          ← PWA app icons (192/512, Apple, maskable)
 ├── Machine learning maths book.pdf                                 ← Core Math Reference PDF
 ├── Section_02_Week_01_Python_Programming_Basics/                  ← Python Fundamentals
 ├── Section_03_Week_02_Data_Science_Essentials/                    ← NumPy & Pandas
