@@ -201,13 +201,31 @@
 
         /* ===== INSTALL PROMPT TOAST ===== */
         #install-toast {
-            transform: translateY(140%);
-            transition: transform .35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            /* Keep the prompt above the mobile navigation and phone safe area. */
+            bottom: calc(4rem + env(safe-area-inset-bottom));
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            /* 140% did not clear the 4rem bottom offset, leaving a visible strip. */
+            transform: translateY(calc(100% + 5rem + env(safe-area-inset-bottom)));
+            transition:
+                transform .35s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                opacity .2s ease,
+                visibility 0s linear .35s;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
         }
-        #install-toast.show { transform: translateY(0); }
+        #install-toast.show {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
+            transition-delay: 0s;
+        }
         @media (min-width: 1024px) {
-            #install-toast { transform: translateX(140%); }
+            #install-toast {
+                bottom: 1.5rem;
+                transform: translateX(calc(100% + 2rem));
+            }
             #install-toast.show { transform: translateX(0); }
         }
 
@@ -1100,7 +1118,10 @@
                 clearTimeout(installToastTimer);
                 installToastTimer = setTimeout(() => {
                     // The app may have been installed while this timer was pending.
-                    if (!isStandalone()) toast.classList.add('show');
+                    if (!isStandalone()) {
+                        toast.classList.add('show');
+                        toast.setAttribute('aria-hidden', 'false');
+                    }
                 }, 1200);
             }
         }
@@ -1116,7 +1137,10 @@
             const headerBtn = document.getElementById('header-install-btn');
             if (headerBtn) headerBtn.classList.add('hidden');
             const toast = document.getElementById('install-toast');
-            if (toast) toast.classList.remove('show');
+            if (toast) {
+                toast.classList.remove('show');
+                toast.setAttribute('aria-hidden', 'true');
+            }
         }
 
         function isStandalone() {
@@ -1140,7 +1164,11 @@
                     : 'Use your browser menu → "Add to Home screen" / "Install app".';
             }
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 6000);
+            toast.setAttribute('aria-hidden', 'false');
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.setAttribute('aria-hidden', 'true');
+            }, 6000);
             setTimeout(() => { if (msg) msg.textContent = 'Install ML Masterclass'; if (desc) desc.textContent = 'Get the app on your home screen for offline learning.'; }, 6200);
         }
 
@@ -2461,7 +2489,7 @@ print("Predicted classes for [2.5, 3.5] & [8.5, 9.5]:", preds)`
     </nav>
 
     <!-- ===== INSTALL APP PROMPT TOAST ===== -->
-    <div id="install-toast" class="fixed bottom-16 lg:bottom-6 left-3 right-3 lg:left-auto lg:right-6 lg:w-96 z-50 flex items-center gap-3 p-3 rounded-2xl border border-fuchsia-500/30 neu-flat" role="dialog" aria-live="polite">
+    <div id="install-toast" class="fixed left-3 right-3 lg:left-auto lg:right-6 lg:w-96 z-50 flex items-center gap-3 p-3 rounded-2xl border border-fuchsia-500/30 neu-flat" role="dialog" aria-live="polite" aria-hidden="true">
         <div class="w-11 h-11 shrink-0 rounded-xl overflow-hidden shadow-md">
             <img src="./icons/icon-192.png" alt="ML Masterclass icon" class="w-full h-full object-cover">
         </div>
