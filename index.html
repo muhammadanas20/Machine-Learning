@@ -1035,10 +1035,19 @@
 
         // ===== PWA INSTALL PROMPT =====
         let deferredInstallPrompt = null;
+        let installToastTimer = null;
 
         function setupInstall() {
+            // An installed PWA can still expose a stale beforeinstallprompt event
+            // after a reload. Never show install controls inside the installed app.
+            if (isStandalone()) {
+                hideInstallUI();
+                return;
+            }
+
             // Desktop/Chrome install button & toast
             window.addEventListener('beforeinstallprompt', (e) => {
+                if (isStandalone()) return;
                 e.preventDefault();
                 deferredInstallPrompt = e;
                 showInstallUI();
@@ -1046,8 +1055,8 @@
 
             window.addEventListener('appinstalled', () => {
                 deferredInstallPrompt = null;
-                hideInstallUI();
                 localStorage.setItem('ml_install_dismissed', '1');
+                hideInstallUI();
             });
 
             // iOS Safari has no install prompt event — show gentle guidance.
@@ -1058,6 +1067,12 @@
         }
 
         function promptInstall() {
+            // Do not offer installation again when running as the installed app.
+            if (isStandalone()) {
+                deferredInstallPrompt = null;
+                hideInstallUI();
+                return;
+            }
             if (!deferredInstallPrompt) {
                 // Fallback: show instructions for iOS / already-installed contexts
                 showInstallHint();
@@ -1074,12 +1089,19 @@
         }
 
         function showInstallUI() {
-            if (localStorage.getItem('ml_install_dismissed') === '1') return;
+            if (isStandalone() || localStorage.getItem('ml_install_dismissed') === '1') {
+                hideInstallUI();
+                return;
+            }
             const headerBtn = document.getElementById('header-install-btn');
             if (headerBtn) headerBtn.classList.remove('hidden');
             const toast = document.getElementById('install-toast');
-            if (toast && isStandalone() === false) {
-                setTimeout(() => toast.classList.add('show'), 1200);
+            if (toast) {
+                clearTimeout(installToastTimer);
+                installToastTimer = setTimeout(() => {
+                    // The app may have been installed while this timer was pending.
+                    if (!isStandalone()) toast.classList.add('show');
+                }, 1200);
             }
         }
 
@@ -1089,6 +1111,8 @@
         }
 
         function hideInstallUI() {
+            clearTimeout(installToastTimer);
+            installToastTimer = null;
             const headerBtn = document.getElementById('header-install-btn');
             if (headerBtn) headerBtn.classList.add('hidden');
             const toast = document.getElementById('install-toast');
@@ -1102,6 +1126,10 @@
 
         // iOS / manual-install guidance (when no install prompt is available)
         function showInstallHint() {
+            if (isStandalone()) {
+                hideInstallUI();
+                return;
+            }
             const toast = document.getElementById('install-toast');
             const msg = toast.querySelector('p');
             const desc = toast.querySelector('p + p');
