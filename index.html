@@ -1,11 +1,28 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="dark app-shell">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ML Masterclass — Machine Learning & Deep Learning Notebook Hub</title>
     <meta name="description" content="Interactive Machine Learning & Deep Learning course platform featuring live Pyodide Python execution, notebook viewer, dataset explorer, progress tracking, and math references.">
-    
+    <meta name="application-name" content="ML Masterclass">
+    <meta name="author" content="Muhammad Anas">
+    <meta name="color-scheme" content="dark light">
+
+    <!-- ===== PWA / MOBILE APP METADATA ===== -->
+    <meta name="theme-color" id="theme-color-meta" content="#141824">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ML Masterclass">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- Manifest + Icons -->
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="./icons/favicon-48.png">
+
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23141824'/%3E%3Crect x='3' y='3' width='58' height='58' rx='12' fill='%231b2030'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='32' font-weight='900' fill='%2360a5fa'%3EML%3C/text%3E%3Ccircle cx='52' cy='14' r='6' fill='%2334d399'/%3E%3C/svg%3E">
     
@@ -109,6 +126,102 @@
             max-width: 100% !important;
             overflow-x: hidden !important;
             min-width: 0 !important;
+        }
+
+        /* ===== APP-SHELL (fixed viewport app layout) ===== */
+        /* Uses 100dvh so the header + scroll area fit perfectly on mobile
+           browsers without the URL bar covering content. */
+        html.app-shell, html.app-shell body {
+            height: 100%;
+        }
+        body.app-shell {
+            height: 100vh;
+            height: 100dvh;
+            min-height: 0;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+
+        /* ===== INDEPENDENT SCROLL CONTAINERS =====
+           The sidebar list and the main content must scroll on their own.
+           overscroll-behavior: contain stops scroll "chaining" — scrolling the
+           sidebar to its end must NOT also scroll the main page (and vice versa). */
+        #sidebar, #sidebar-curriculum-list, main {
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+        }
+        #sidebar-curriculum-list {
+            min-height: 0;
+            overflow-y: auto !important;
+        }
+        main {
+            min-height: 0 !important;
+            scrollbar-gutter: stable;
+        }
+
+        /* Safe-area insets for notched phones */
+        .pt-safe { padding-top: env(safe-area-inset-top); }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .px-safe { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+
+        /* ===== MOBILE BOTTOM NAVIGATION ===== */
+        .bottom-nav {
+            background: var(--surface-color);
+            border-top: 1px solid var(--border-color);
+            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.15);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .bottom-nav .bn-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            flex: 1;
+            min-width: 0;
+            padding: 6px 4px 4px;
+            border-radius: 12px;
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            transition: color .2s ease, transform .15s ease;
+            background: transparent;
+            border: none;
+        }
+        .bottom-nav .bn-item i {
+            font-size: 16px;
+            line-height: 1;
+        }
+        .bottom-nav .bn-item:active { transform: scale(0.92); }
+        .bottom-nav .bn-item.active {
+            color: var(--accent-primary);
+        }
+
+        /* ===== INSTALL PROMPT TOAST ===== */
+        #install-toast {
+            transform: translateY(140%);
+            transition: transform .35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        #install-toast.show { transform: translateY(0); }
+        @media (min-width: 1024px) {
+            #install-toast { transform: translateX(140%); }
+            #install-toast.show { transform: translateX(0); }
+        }
+
+        /* ===== MODAL/VIEW TRANSITIONS ===== */
+        .modal-card { animation: modalPop .25s ease; }
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(.96) translateY(8px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Tap-friendly min hit area on mobile */
+        @media (max-width: 639px) {
+            .neu-button, .neu-heart-btn { min-height: 38px; }
+            button { touch-action: manipulation; }
         }
 
         /* ===== NEUMORPHIC UTILITIES ===== */
@@ -267,7 +380,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col antialiased selection:bg-blue-500/30 selection:text-blue-200 overflow-x-hidden">
+<body class="app-shell flex flex-col antialiased selection:bg-blue-500/30 selection:text-blue-200 overflow-x-hidden">
 
     <!-- TOP HEADER BAR -->
     <header class="sticky top-0 z-30 w-full backdrop-blur-md bg-[var(--surface-color)]/90 border-b border-[var(--border-color)] px-2 sm:px-4 py-2.5 shadow-md max-w-full overflow-x-hidden">
@@ -309,32 +422,38 @@
                     <span id="pyodide-status-text">Engine Idle</span>
                 </div>
 
-                <!-- Preload Engine Button -->
-                <button id="preload-pyodide-btn" onclick="preloadPyodideEngine()" class="neu-button px-2.5 py-1.5 sm:px-3 text-xs font-semibold flex items-center gap-1.5 text-cyan-400" title="Preload Python WASM Engine in Background">
+                <!-- Preload Engine Button (desktop/tablet only — lazy load works everywhere) -->
+                <button id="preload-pyodide-btn" onclick="preloadPyodideEngine()" class="hidden md:inline-flex neu-button px-2.5 py-1.5 sm:px-3 text-xs font-semibold items-center gap-1.5 text-cyan-400" title="Preload Python WASM Engine in Background">
                     <i class="fa-solid fa-bolt"></i>
                     <span class="hidden sm:inline">Preload</span>
                 </button>
 
-                <!-- Datasets Explorer Modal Trigger -->
-                <button onclick="openDatasetsModal()" class="neu-button px-2.5 py-1.5 sm:px-3 text-xs font-semibold flex items-center gap-1.5 text-amber-400" title="Course Datasets Explorer">
+                <!-- Install App Button (appears once installable) -->
+                <button id="header-install-btn" onclick="promptInstall()" class="hidden neu-button px-2.5 py-1.5 text-xs font-semibold items-center gap-1.5 text-fuchsia-400" title="Install ML Masterclass as an App">
+                    <i class="fa-solid fa-download"></i>
+                    <span class="hidden lg:inline">Install App</span>
+                </button>
+
+                <!-- Datasets Explorer Modal Trigger (desktop only) -->
+                <button onclick="openDatasetsModal()" class="hidden lg:inline-flex neu-button px-2.5 py-1.5 sm:px-3 text-xs font-semibold items-center gap-1.5 text-amber-400" title="Course Datasets Explorer">
                     <i class="fa-solid fa-database"></i>
                     <span class="hidden sm:inline">Datasets</span>
                 </button>
 
-                <!-- Playground Sandbox Modal Trigger -->
-                <button onclick="openPlaygroundModal()" class="neu-button px-2.5 py-1.5 sm:px-3 text-xs font-semibold flex items-center gap-1.5 text-emerald-400" title="Open Python Sandbox">
+                <!-- Playground Sandbox Modal Trigger (desktop only) -->
+                <button onclick="openPlaygroundModal()" class="hidden lg:inline-flex neu-button px-2.5 py-1.5 sm:px-3 text-xs font-semibold items-center gap-1.5 text-emerald-400" title="Open Python Sandbox">
                     <i class="fa-solid fa-terminal"></i>
                     <span class="hidden sm:inline">Sandbox</span>
                 </button>
 
-                <!-- Bookmarks Button -->
-                <button onclick="toggleFavoritesDrawer()" class="neu-button p-2 px-2.5 text-xs font-semibold flex items-center gap-1.5 text-red-400 relative" title="Saved Notebooks">
+                <!-- Bookmarks Button (desktop only) -->
+                <button onclick="toggleFavoritesDrawer()" class="hidden lg:inline-flex neu-button p-2 px-2.5 text-xs font-semibold items-center gap-1.5 text-red-400 relative" title="Saved Notebooks">
                     <i class="fa-solid fa-heart"></i>
-                    <span id="fav-badge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">0</span>
+                    <span id="fav-badge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full items-center justify-center font-bold">0</span>
                 </button>
 
-                <!-- Dark / Light Theme Toggle -->
-                <button onclick="toggleTheme()" class="neu-button p-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)]" title="Toggle Theme">
+                <!-- Dark / Light Theme Toggle (desktop only) -->
+                <button onclick="toggleTheme()" class="hidden lg:inline-flex neu-button p-2 text-xs items-center text-[var(--text-muted)] hover:text-[var(--text-main)]" title="Toggle Theme">
                     <i class="fa-solid fa-moon dark:hidden"></i>
                     <i class="fa-solid fa-sun hidden dark:block text-amber-300"></i>
                 </button>
@@ -343,13 +462,13 @@
     </header>
 
     <!-- MAIN BODY CONTAINER -->
-    <div class="flex-1 flex w-full relative overflow-hidden max-w-full">
+    <div class="flex-1 flex w-full relative overflow-hidden max-w-full min-h-0">
         
         <!-- SIDEBAR OVERLAY FOR MOBILE -->
         <div id="sidebar-overlay" onclick="closeSidebarMobile()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 opacity-0 pointer-events-none transition-opacity duration-300 lg:hidden"></div>
 
         <!-- SIDEBAR NAVIGATION -->
-        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-20 w-80 max-w-[85vw] shrink-0 bg-[var(--surface-color)] border-r border-[var(--border-color)] flex flex-col transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 h-[calc(100vh-57px)]">
+        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-20 w-80 max-w-[85vw] shrink-0 bg-[var(--surface-color)] border-r border-[var(--border-color)] flex flex-col transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 lg:h-full lg:min-h-0">
             
             <!-- Sidebar Header & Progress Bar -->
             <div class="p-4 border-b border-[var(--border-color)] flex flex-col gap-3">
@@ -390,7 +509,7 @@
         </button>
 
         <!-- MAIN VIEWPORT CONTAINER -->
-        <main class="flex-1 flex flex-col min-w-0 max-w-full h-[calc(100vh-57px)] overflow-y-auto relative p-3 sm:p-6 md:p-8">
+        <main class="flex-1 flex flex-col min-w-0 max-w-full overflow-y-auto relative p-3 sm:p-6 md:p-8 pb-safe">
             
             <!-- NOTEBOOK HEADER (Hidden on Overview) -->
             <div id="notebook-header-container" class="hidden mb-6 flex flex-col gap-4 min-w-0">
@@ -554,7 +673,7 @@
     </div>
 
     <!-- FAVORITES DRAWER -->
-    <div id="favorites-drawer" class="fixed inset-y-0 right-0 z-40 w-80 bg-[var(--surface-color)] border-l border-[var(--border-color)] shadow-2xl transition-transform duration-300 transform translate-x-full flex flex-col">
+    <div id="favorites-drawer" class="fixed inset-y-0 right-0 z-40 w-80 max-w-[85vw] bg-[var(--surface-color)] border-l border-[var(--border-color)] shadow-2xl transition-transform duration-300 transform translate-x-full flex flex-col">
         <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between">
             <h3 class="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
                 <i class="fa-solid fa-heart text-red-400"></i> Bookmarked Notebooks
@@ -569,8 +688,8 @@
     </div>
 
     <!-- DATASETS EXPLORER MODAL -->
-    <div id="datasets-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md hidden items-center justify-center p-4">
-        <div class="neu-flat w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden border border-amber-500/30">
+    <div id="datasets-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4" onclick="if(event.target===this)closeDatasetsModal()">
+        <div class="modal-card neu-flat w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden border border-amber-500/30">
             <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between bg-slate-900/50">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-database text-amber-400 text-lg"></i>
@@ -608,8 +727,8 @@
     </div>
 
     <!-- MATHS BOOK MODAL -->
-    <div id="maths-book-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md hidden items-center justify-center p-4">
-        <div class="neu-flat w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden border border-purple-500/30">
+    <div id="maths-book-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4" onclick="if(event.target===this)closeMathsBookModal()">
+        <div class="modal-card neu-flat w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden border border-purple-500/30">
             <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between bg-slate-900/50">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-book-open text-purple-400 text-lg"></i>
@@ -631,8 +750,8 @@
     </div>
 
     <!-- PLAYGROUND SANDBOX MODAL -->
-    <div id="playground-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md hidden items-center justify-center p-4">
-        <div class="neu-flat w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-emerald-500/30">
+    <div id="playground-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4" onclick="if(event.target===this)closePlaygroundModal()">
+        <div class="modal-card neu-flat w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-emerald-500/30">
             <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between bg-slate-900/50">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-terminal text-emerald-400 text-lg"></i>
@@ -860,12 +979,20 @@
             updateProgressStats();
             updateFavoritesBadge();
             setupSidebarMobileToggle();
-            
+            setupModalKeyboard();
+            setupInstall();
+            registerServiceWorker();
+
+            // #sandbox shortcut (deep link from app shortcuts)
+            if (window.location.hash === '#sandbox') {
+                openPlaygroundModal();
+            }
+
             // Pyodide WASM engine loads LAZILY on first "Run Cell" click
             // No eager init = instant page load!
 
             // Check Hash route
-            const hash = window.location.hash.replace('#', '');
+            const hash = window.location.hash.replace('#', '').replace('sandbox', '');
             if (hash) {
                 const found = CURRICULUM_DATA.find(n => n.path === hash || n.section === hash);
                 if (found) loadNotebook(found.path);
@@ -880,11 +1007,142 @@
             } else {
                 document.documentElement.classList.add('dark');
             }
+            updateThemeColorMeta();
         }
 
         function toggleTheme() {
             const isDark = document.documentElement.classList.toggle('dark');
             localStorage.setItem('ml_theme', isDark ? 'dark' : 'light');
+            updateThemeColorMeta();
+        }
+
+        function updateThemeColorMeta() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const meta = document.getElementById('theme-color-meta');
+            if (meta) meta.setAttribute('content', isDark ? '#141824' : '#e6edf8');
+        }
+
+        // ===== SERVICE WORKER (PWA OFFLINE SUPPORT) =====
+        function registerServiceWorker() {
+            if (!('serviceWorker' in navigator)) return;
+            // Wait for load so we don't compete with the Pyodide worker/network.
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch((err) => {
+                    console.warn('Service worker registration failed:', err);
+                });
+            });
+        }
+
+        // ===== PWA INSTALL PROMPT =====
+        let deferredInstallPrompt = null;
+
+        function setupInstall() {
+            // Desktop/Chrome install button & toast
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredInstallPrompt = e;
+                showInstallUI();
+            });
+
+            window.addEventListener('appinstalled', () => {
+                deferredInstallPrompt = null;
+                hideInstallUI();
+                localStorage.setItem('ml_install_dismissed', '1');
+            });
+
+            // iOS Safari has no install prompt event — show gentle guidance.
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            if (isIOS && !isStandalone() && localStorage.getItem('ml_install_dismissed') !== '1') {
+                setTimeout(() => showInstallHint(), 4000);
+            }
+        }
+
+        function promptInstall() {
+            if (!deferredInstallPrompt) {
+                // Fallback: show instructions for iOS / already-installed contexts
+                showInstallHint();
+                return;
+            }
+            deferredInstallPrompt.prompt();
+            deferredInstallPrompt.userChoice.then((choice) => {
+                if (choice.outcome === 'accepted') {
+                    hideInstallUI();
+                    localStorage.setItem('ml_install_dismissed', '1');
+                }
+                deferredInstallPrompt = null;
+            });
+        }
+
+        function showInstallUI() {
+            if (localStorage.getItem('ml_install_dismissed') === '1') return;
+            const headerBtn = document.getElementById('header-install-btn');
+            if (headerBtn) headerBtn.classList.remove('hidden');
+            const toast = document.getElementById('install-toast');
+            if (toast && isStandalone() === false) {
+                setTimeout(() => toast.classList.add('show'), 1200);
+            }
+        }
+
+        function dismissInstallToast() {
+            localStorage.setItem('ml_install_dismissed', '1');
+            hideInstallUI();
+        }
+
+        function hideInstallUI() {
+            const headerBtn = document.getElementById('header-install-btn');
+            if (headerBtn) headerBtn.classList.add('hidden');
+            const toast = document.getElementById('install-toast');
+            if (toast) toast.classList.remove('show');
+        }
+
+        function isStandalone() {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                window.navigator.standalone === true;
+        }
+
+        // iOS / manual-install guidance (when no install prompt is available)
+        function showInstallHint() {
+            const toast = document.getElementById('install-toast');
+            const msg = toast.querySelector('p');
+            const desc = toast.querySelector('p + p');
+            if (msg) msg.textContent = 'Install on your device';
+            if (desc) {
+                desc.textContent = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+                    ? 'Tap Share → Add to Home Screen.'
+                    : 'Use your browser menu → "Add to Home screen" / "Install app".';
+            }
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 6000);
+            setTimeout(() => { if (msg) msg.textContent = 'Install ML Masterclass'; if (desc) desc.textContent = 'Get the app on your home screen for offline learning.'; }, 6200);
+        }
+
+        // ===== KEYBOARD & OVERLAY HELPERS =====
+        function setupModalKeyboard() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                const modals = [
+                    ['datasets-modal', closeDatasetsModal],
+                    ['maths-book-modal', closeMathsBookModal],
+                    ['playground-modal', closePlaygroundModal]
+                ];
+                for (const [id, closeFn] of modals) {
+                    const el = document.getElementById(id);
+                    if (el && !el.classList.contains('hidden')) { closeFn(); return; }
+                }
+                const drawer = document.getElementById('favorites-drawer');
+                if (drawer && !drawer.classList.contains('translate-x-full')) toggleFavoritesDrawer();
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                if (overlay && !overlay.classList.contains('opacity-0') && window.innerWidth < 1024) {
+                    closeSidebarMobile();
+                }
+            });
+        }
+
+        function closeAllOverlays() {
+            if (window.innerWidth < 1024) closeSidebarMobile();
+            const drawer = document.getElementById('favorites-drawer');
+            if (drawer && !drawer.classList.contains('translate-x-full')) toggleFavoritesDrawer();
         }
 
         // ===== PYODIDE WEB WORKER ENGINE (RUNS OFF MAIN THREAD) =====
@@ -1560,7 +1818,9 @@ if 'torch' not in sys.modules:
             document.getElementById('github-link-btn').href = `https://github.com/muhammadanas20/Machine-Learning/blob/master/${path}`;
 
             updateHeaderButtonsState();
+            updateBottomNavState();
             renderSidebar();
+            scrollMainToTop();
 
             cellsContainer.innerHTML = `
                 <div class="neu-flat p-8 text-center space-y-3">
@@ -1958,11 +2218,13 @@ print("Predicted classes for [2.5, 3.5] & [8.5, 9.5]:", preds)`
 
         function updateFavoritesBadge() {
             const badge = document.getElementById('fav-badge');
+            const bnBadge = document.getElementById('bn-fav-badge');
             if (favorites.length > 0) {
-                badge.textContent = favorites.length;
-                badge.classList.remove('hidden');
+                if (badge) { badge.textContent = favorites.length; badge.classList.remove('hidden'); }
+                if (bnBadge) { bnBadge.textContent = favorites.length; bnBadge.classList.remove('hidden'); }
             } else {
-                badge.classList.add('hidden');
+                if (badge) badge.classList.add('hidden');
+                if (bnBadge) bnBadge.classList.add('hidden');
             }
         }
 
@@ -2082,20 +2344,55 @@ print("Predicted classes for [2.5, 3.5] & [8.5, 9.5]:", preds)`
             document.getElementById('cells-container').classList.add('hidden');
             document.getElementById('notebook-header-container').classList.add('hidden');
             renderSidebar();
+            updateBottomNavState();
+            scrollMainToTop();
+        }
+
+        // Scroll the main viewport back to the top (used when switching views).
+        function scrollMainToTop() {
+            const main = document.querySelector('main');
+            if (main) main.scrollTop = 0;
+        }
+
+        // Highlight the matching bottom-nav tab (Home when on the overview).
+        function updateBottomNavState() {
+            const home = document.getElementById('bn-home-btn');
+            if (!home) return;
+            home.classList.toggle('active', !currentNotebookPath);
         }
 
         function copyCodeCell(cellId) {
             const editor = document.getElementById(cellId);
-            if (editor) {
-                const code = editor.value || editor.textContent;
-                navigator.clipboard.writeText(code).then(() => {
-                    const btn = editor.closest('.neu-flat').querySelector('[onclick*="copyCodeCell"]');
-                    if (btn) {
-                        const orig = btn.innerHTML;
-                        btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> Copied!`;
-                        setTimeout(() => { btn.innerHTML = orig; }, 1500);
-                    }
-                });
+            if (!editor) return;
+            const code = editor.value || editor.textContent;
+
+            const showCopied = () => {
+                const btn = editor.closest('.neu-flat').querySelector('[onclick*="copyCodeCell"]');
+                if (btn) {
+                    const orig = btn.innerHTML;
+                    btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> Copied!`;
+                    setTimeout(() => { btn.innerHTML = orig; }, 1500);
+                }
+            };
+
+            const doFallback = () => {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = code;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showCopied();
+                } catch (e) { /* ignore */ }
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(code).then(showCopied).catch(doFallback);
+            } else {
+                doFallback();
             }
         }
 
@@ -2109,5 +2406,48 @@ print("Predicted classes for [2.5, 3.5] & [8.5, 9.5]:", preds)`
                 .replace(/'/g, "&#039;");
         }
     </script>
+
+    <!-- ===== MOBILE BOTTOM NAVIGATION (Mobile Chrome App Shell) ===== -->
+    <nav id="mobile-bottom-nav" class="lg:hidden bottom-nav flex items-stretch px-safe select-none" aria-label="Primary navigation">
+        <button id="bn-home-btn" class="bn-item active" onclick="loadRepoOverview(); closeAllOverlays()" title="Home">
+            <i class="fa-solid fa-house"></i><span>Home</span>
+        </button>
+        <button class="bn-item" onclick="openDatasetsModal()" title="Datasets">
+            <i class="fa-solid fa-database"></i><span>Datasets</span>
+        </button>
+        <button class="bn-item" onclick="openPlaygroundModal()" title="Sandbox">
+            <i class="fa-solid fa-terminal"></i><span>Sandbox</span>
+        </button>
+        <button class="bn-item" id="bn-fav-btn" onclick="toggleFavoritesDrawer()" title="Bookmarks">
+            <span class="relative">
+                <i class="fa-solid fa-heart"></i>
+                <span id="bn-fav-badge" class="hidden absolute -top-1.5 -right-2.5 w-3.5 h-3.5 bg-red-500 text-white text-[9px] rounded-full items-center justify-center font-bold">0</span>
+            </span>
+            <span>Bookmarks</span>
+        </button>
+        <button class="bn-item" onclick="toggleTheme()" title="Toggle Theme">
+            <i class="fa-solid fa-moon dark:hidden"></i>
+            <i class="fa-solid fa-sun hidden dark:block text-amber-300"></i>
+            <span>Theme</span>
+        </button>
+    </nav>
+
+    <!-- ===== INSTALL APP PROMPT TOAST ===== -->
+    <div id="install-toast" class="fixed bottom-16 lg:bottom-6 left-3 right-3 lg:left-auto lg:right-6 lg:w-96 z-50 flex items-center gap-3 p-3 rounded-2xl border border-fuchsia-500/30 neu-flat" role="dialog" aria-live="polite">
+        <div class="w-11 h-11 shrink-0 rounded-xl overflow-hidden shadow-md">
+            <img src="./icons/icon-192.png" alt="ML Masterclass icon" class="w-full h-full object-cover">
+        </div>
+        <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-[var(--text-main)]">Install ML Masterclass</p>
+            <p class="text-[11px] text-[var(--text-muted)] leading-snug">Get the app on your home screen for offline learning.</p>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+            <button onclick="promptInstall()" class="neu-button px-3 py-2 text-xs font-bold text-fuchsia-400">Install</button>
+            <button onclick="dismissInstallToast()" class="neu-button p-2 text-xs text-[var(--text-muted)]" aria-label="Dismiss" title="Dismiss">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
 </body>
 </html>
